@@ -58,17 +58,11 @@ public partial class VersionUpdateSettingsUserControlModel : ViewModelBase
 
     [ObservableProperty] private string _gitHubToken = SimpleEncryptionHelper.Decrypt(ConfigurationManager.Current.GetValue(ConfigurationKeys.GitHubToken, string.Empty));
 
-    partial void OnGitHubTokenChanged(string value)
-    {
-        ConfigurationManager.Current.SetValue(ConfigurationKeys.GitHubToken, SimpleEncryptionHelper.Encrypt(value));
-    }
+    partial void OnGitHubTokenChanged(string value) => HandlePropertyChanged(ConfigurationKeys.GitHubToken, SimpleEncryptionHelper.Encrypt(value));
 
     [ObservableProperty] private string _cdkPassword = SimpleEncryptionHelper.Decrypt(ConfigurationManager.Current.GetValue(ConfigurationKeys.DownloadCDK, string.Empty));
 
-    partial void OnCdkPasswordChanged(string value)
-    {
-        ConfigurationManager.Current.SetValue(ConfigurationKeys.DownloadCDK, SimpleEncryptionHelper.Encrypt(value));
-    }
+    partial void OnCdkPasswordChanged(string value) => HandlePropertyChanged(ConfigurationKeys.DownloadCDK, SimpleEncryptionHelper.Encrypt(value));
 
     [ObservableProperty] private bool _enableCheckVersion = ConfigurationManager.Current.GetValue(ConfigurationKeys.EnableCheckVersion, true);
 

@@ -338,12 +338,16 @@ public static class VersionChecker
             fileExtension = ".zip";
         }
         var tempZipFilePath = Path.Combine(tempPath, $"resource_{latestVersion}{fileExtension}");
+
         SetText(textBlock, "Downloading".ToLocalization());
         SetProgress(progress, 0);
-        if (!await DownloadFileAsync(downloadUrl, tempZipFilePath, progress, "GameResourceUpdated"))
+        (var downloadStatus, tempZipFilePath) = await DownloadFileAsync(downloadUrl, tempZipFilePath, progress);
+        LoggerHelper.Info(tempZipFilePath);
+        if (!downloadStatus)
         {
             Dismiss(sukiToast);
             ToastHelper.Warn("DownloadFailed".ToLocalization());
+            Instances.RootViewModel.SetUpdating(false);
             return;
         }
 
@@ -356,9 +360,10 @@ public static class VersionChecker
         {
             Dismiss(sukiToast);
             ToastHelper.Warn("DownloadFailed".ToLocalization());
+            Instances.RootViewModel.SetUpdating(false);
             return;
         }
-        
+
         await UniversalExtractor.ExtractAsync(tempZipFilePath, tempExtractDir, progress);
         SetText(textBlock, "ApplyingUpdate".ToLocalization());
         var originPath = tempExtractDir;
@@ -586,6 +591,7 @@ public static class VersionChecker
                 Dismiss(sukiToast);
                 ToastHelper.Warn($"{"FailToGetLatestVersionInfo".ToLocalization()}", ex.Message);
                 LoggerHelper.Error(ex);
+                Instances.RootViewModel.SetUpdating(false);
                 return;
             }
 
@@ -602,6 +608,7 @@ public static class VersionChecker
             {
                 Dismiss(sukiToast);
                 ToastHelper.Info("MFAIsLatestVersion".ToLocalization());
+                Instances.RootViewModel.SetUpdating(false);
                 return;
             }
 
@@ -613,10 +620,12 @@ public static class VersionChecker
             SetText(textBlock, "Downloading".ToLocalization());
             SetProgress(progress, 0);
             var tempZip = Path.Combine(tempPath, $"mfa_{latestVersion}.zip");
-            if (!await DownloadWithRetry(downloadUrl, tempZip, progress, 3))
+            (var downloadStatus, tempZip) = await DownloadWithRetry(downloadUrl, tempZip, progress, 3);
+            if (!downloadStatus)
             {
                 Dismiss(sukiToast);
-                ToastHelper.Warn("DownloadFailed");
+                ToastHelper.Warn("DownloadFailed".ToLocalization());
+                Instances.RootViewModel.SetUpdating(false);
                 return;
             }
 
@@ -627,7 +636,7 @@ public static class VersionChecker
                 Directory.Delete(extractDir, true);
             SetText(textBlock, "Extracting".ToLocalization());
             await UniversalExtractor.ExtractAsync(tempZip, extractDir, progress);
-            
+
             SetText(textBlock, "ApplyingUpdate".ToLocalization());
             // 执行安全更新
             SetProgress(progress, 40);
@@ -727,13 +736,13 @@ public static class VersionChecker
 
     #region 增强型更新核心方法
 
-    async private static Task<bool> DownloadWithRetry(string url, string savePath, ProgressBar progress, int retries)
+    async private static Task<(bool, string)> DownloadWithRetry(string url, string savePath, ProgressBar? progress, int retries)
     {
         for (int i = 0; i < retries; i++)
         {
             try
             {
-                return await DownloadFileAsync(url, savePath, progress, "GameResourceUpdated");
+                return await DownloadFileAsync(url, savePath, progress);
             }
             catch (WebException ex) when (i < retries - 1)
             {
@@ -741,7 +750,7 @@ public static class VersionChecker
                 await Task.Delay(2000 * (i + 1));
             }
         }
-        return false;
+        return (false, savePath);
     }
     private static string BuildArguments(string source, string target, string oldName, string newName)
     {
@@ -908,6 +917,7 @@ public static class VersionChecker
                 Dismiss(sukiToast);
                 ToastHelper.Warn($"{"FailToGetLatestVersionInfo".ToLocalization()}", ex.Message);
                 LoggerHelper.Error(ex);
+                Instances.RootViewModel.SetUpdating(false);
                 return;
             }
             // 版本校验（保持原有逻辑）
@@ -916,6 +926,7 @@ public static class VersionChecker
             {
                 Dismiss(sukiToast);
                 ToastHelper.Info("MaaFwIsLatestVersion".ToLocalization());
+                Instances.RootViewModel.SetUpdating(false);
                 return;
             }
 
@@ -924,10 +935,12 @@ public static class VersionChecker
             Directory.CreateDirectory(tempPath);
             var tempZip = Path.Combine(tempPath, $"maafw_{latestVersion}.zip");
             SetText(textBlock, "Downloading".ToLocalization());
-            if (!await DownloadWithRetry(downloadUrl, tempZip, progress, 3))
+            (var downloadStatus, tempZip) = await DownloadWithRetry(downloadUrl, tempZip, progress, 3);
+            if (!downloadStatus)
             {
                 Dismiss(sukiToast);
-                ToastHelper.Warn("DownloadFailed");
+                ToastHelper.Warn("DownloadFailed".ToLocalization());
+                Instances.RootViewModel.SetUpdating(false);
                 return;
             }
 
@@ -1390,7 +1403,7 @@ public static class VersionChecker
         return new SemVersion(new BigInteger(major), new BigInteger(minor), new BigInteger(patch), prerelease, build);
     }
 
-    async private static Task<bool> DownloadFileAsync(string url, string filePath, ProgressBar? progressBar, string key)
+    async private static Task<(bool, string)> DownloadFileAsync(string url, string filePath, ProgressBar? progressBar)
     {
         try
         {
@@ -1491,22 +1504,22 @@ public static class VersionChecker
                     (DateTime.Now - startTime).TotalSeconds
                 ));
 
-            return true;
+            return (true, filePath);
         }
         catch (HttpRequestException httpEx)
         {
             LoggerHelper.Error($"HTTP请求失败: {httpEx.Message}");
-            return false;
+            return (false, filePath);
         }
         catch (IOException ioEx)
         {
             LoggerHelper.Error($"文件操作失败: {ioEx.Message}");
-            return false;
+            return (false, filePath);
         }
         catch (Exception ex)
         {
             LoggerHelper.Error($"未知错误: {ex.Message}");
-            return false;
+            return (false, filePath);
         }
     }
 

@@ -153,7 +153,7 @@ public class UniversalExtractor
     }
 
     // 异步解压ZIP文件（带进度）
-    private static async Task ExtractZipAsync(string zipFilePath, string destinationDirectory, ProgressBar? progressBar = null)
+    async private static Task ExtractZipAsync(string zipFilePath, string destinationDirectory, ProgressBar? progressBar = null)
     {
         using (var archive = ArchiveFactory.Open(zipFilePath))
         {
@@ -182,7 +182,7 @@ public class UniversalExtractor
     }
 
     // 异步解压TarGz文件（带进度）
-    private static async Task ExtractTarGzAsync(string tgzFilePath, string destinationDirectory, ProgressBar? progressBar = null)
+    async private static Task ExtractTarGzAsync(string tgzFilePath, string destinationDirectory, ProgressBar? progressBar = null)
     {
         using (var archive = TarArchive.Open(tgzFilePath))
         {
