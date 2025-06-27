@@ -154,16 +154,48 @@ public partial class App : Application
 
     void TaskScheduler_UnobservedTaskException(object sender, UnobservedTaskExceptionEventArgs e)
     {
-        //task线程内未处理捕获
-        LoggerHelper.Error(e.Exception);
-        ErrorView.ShowException(e.Exception);
-        foreach (var item in e.Exception.InnerExceptions)
+        try
         {
-            LoggerHelper.Error(string.Format("异常类型：{0}{1}来自：{2}{3}异常内容：{4}",
-                item.GetType(), Environment.NewLine, item.Source,
-                Environment.NewLine, item.Message));
-        }
+            bool isDBusServiceUnknown = false;
+            string errorMessage = string.Empty;
+            
+            foreach (var innerEx in e.Exception.InnerExceptions ?? Enumerable.Empty<Exception>())
+            {
+                if (innerEx is Tmds.DBus.Protocol.DBusException dbusEx && dbusEx.ErrorName == "org.freedesktop.DBus.Error.ServiceUnknown" && dbusEx.Message.Contains("com.canonical.AppMenu.Registrar"))
+                {
+                    isDBusServiceUnknown = true;
+                    errorMessage = "检测到DBus服务(com.canonical.AppMenu.Registrar)不可用，这在非Unity桌面环境中是正常现象";
+                    break;
+                }
+            }
 
-        e.SetObserved(); //设置该异常已察觉（这样处理后就不会引起程序崩溃）
+            if (isDBusServiceUnknown)
+            {
+                LoggerHelper.Warning(errorMessage);
+                LoggerHelper.Warning(e.Exception);
+            }
+            else
+            {
+                // 处理其他异常（按原有逻辑记录错误）
+                LoggerHelper.Error(e.Exception);
+                ErrorView.ShowException(e.Exception);
+
+                foreach (var item in e.Exception.InnerExceptions ?? Enumerable.Empty<Exception>())
+                {
+                    LoggerHelper.Error(string.Format("异常类型：{0}{1}来自：{2}{3}异常内容：{4}",
+                        item.GetType(), Environment.NewLine, item.Source,
+                        Environment.NewLine, item.Message));
+                }
+            }
+
+            // 设置异常为已观察，防止程序崩溃
+            e.SetObserved();
+        }
+        catch (Exception ex)
+        {
+            // 防止处理异常时再次抛出异常
+            LoggerHelper.Error("处理未观察任务异常时发生错误:", ex);
+            e.SetObserved();
+        }
     }
 }
