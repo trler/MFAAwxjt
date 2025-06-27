@@ -1106,4 +1106,7 @@
     <data name="AboutToken" xml:space="preserve">
         <value>AboutToken</value>
     </data>
+    <data name="Extracting" xml:space="preserve">
+        <value>Extracting</value>
+    </data>
 </root>

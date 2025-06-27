@@ -1106,4 +1106,7 @@
     <data name="AboutToken" xml:space="preserve">
         <value>關於Token</value>
     </data>
+    <data name="Extracting" xml:space="preserve">
+        <value>正在解壓</value>
+    </data>
 </root>

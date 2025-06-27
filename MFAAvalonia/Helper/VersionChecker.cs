@@ -243,7 +243,7 @@ public static class VersionChecker
                 ShowProgressText = true
             };
             StackPanel stackPanel = new();
-            var textBlock = new TextBlock()
+            textBlock = new TextBlock
             {
                 Text = "GettingLatestResources".ToLocalization(),
             };
@@ -332,8 +332,12 @@ public static class VersionChecker
 
         var tempPath = Path.Combine(AppContext.BaseDirectory, "temp_res");
         Directory.CreateDirectory(tempPath);
-
-        var tempZipFilePath = Path.Combine(tempPath, $"resource_{latestVersion}.zip");
+        string fileExtension = GetFileExtensionFromUrl(downloadUrl);
+        if (string.IsNullOrEmpty(fileExtension))
+        {
+            fileExtension = ".zip";
+        }
+        var tempZipFilePath = Path.Combine(tempPath, $"resource_{latestVersion}{fileExtension}");
         SetText(textBlock, "Downloading".ToLocalization());
         SetProgress(progress, 0);
         if (!await DownloadFileAsync(downloadUrl, tempZipFilePath, progress, "GameResourceUpdated"))
@@ -343,7 +347,7 @@ public static class VersionChecker
             return;
         }
 
-        SetText(textBlock, "ApplyingUpdate".ToLocalization());
+        SetText(textBlock, "Extracting".ToLocalization());
         SetProgress(progress, 0);
 
         var tempExtractDir = Path.Combine(tempPath, $"resource_{latestVersion}_extracted");
@@ -354,15 +358,16 @@ public static class VersionChecker
             ToastHelper.Warn("DownloadFailed".ToLocalization());
             return;
         }
-
-        ZipFile.ExtractToDirectory(tempZipFilePath, tempExtractDir);
-        SetProgress(progress, 50);
+        
+        await UniversalExtractor.ExtractAsync(tempZipFilePath, tempExtractDir, progress);
+        SetText(textBlock, "ApplyingUpdate".ToLocalization());
         var originPath = tempExtractDir;
         var interfacePath = Path.Combine(tempExtractDir, "interface.json");
         var resourceDirPath = Path.Combine(tempExtractDir, "resource");
 
         var wpfDir = AppContext.BaseDirectory;
         var resourcePath = Path.Combine(wpfDir, "resource");
+
         if (!File.Exists(interfacePath))
         {
             originPath = Path.Combine(tempExtractDir, "assets");
@@ -413,7 +418,8 @@ public static class VersionChecker
                             try
                             {
                                 if (!Path.GetFileName(delPath).Contains("MFAUpdater")
-                                    && !Path.GetFileName(delPath).Contains("MFAAvalonia") && !Path.GetFileName(delPath).Contains(Process.GetCurrentProcess().MainModule?.ModuleName ?? string.Empty))
+                                    && !Path.GetFileName(delPath).Contains("MFAAvalonia")
+                                    && !Path.GetFileName(delPath).Contains(Process.GetCurrentProcess().MainModule?.ModuleName ?? string.Empty))
                                 {
                                     LoggerHelper.Info("Deleting file: " + delPath);
                                     File.Delete(delPath);
@@ -592,7 +598,7 @@ public static class VersionChecker
                 if (isGithub)
                     GetLatestVersionAndDownloadUrlFromGithub(out downloadUrl, out _, targetVersion: latestVersion);
             }
-            
+
             if (!IsNewVersionAvailable(latestVersion, GetLocalVersion()))
             {
                 Dismiss(sukiToast);
@@ -620,8 +626,9 @@ public static class VersionChecker
             var extractDir = Path.Combine(tempPath, $"mfa_{latestVersion}_extracted");
             if (Directory.Exists(extractDir))
                 Directory.Delete(extractDir, true);
-            ZipFile.ExtractToDirectory(tempZip, extractDir);
-
+            SetText(textBlock, "Extracting".ToLocalization());
+            await UniversalExtractor.ExtractAsync(tempZip, extractDir, progress);
+            
             SetText(textBlock, "ApplyingUpdate".ToLocalization());
             // 执行安全更新
             SetProgress(progress, 40);
@@ -1392,6 +1399,23 @@ public static class VersionChecker
             httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("request");
             httpClient.DefaultRequestHeaders.Accept.ParseAdd("application/json");
 
+            using var headResponse = await httpClient.SendAsync(new HttpRequestMessage(HttpMethod.Head, url));
+            headResponse.EnsureSuccessStatusCode();
+
+            string? suggestedFileName = null;
+            if (headResponse.Content.Headers.ContentDisposition != null)
+            {
+                suggestedFileName = ParseFileNameFromContentDisposition(
+                    headResponse.Content.Headers.ContentDisposition.ToString());
+            }
+
+            if (!string.IsNullOrEmpty(suggestedFileName))
+            {
+                string dir = Path.GetDirectoryName(filePath)!;
+                string newFileName = Path.GetFileNameWithoutExtension(filePath) + Path.GetExtension(suggestedFileName);
+                filePath = Path.Combine(dir, newFileName);
+            }
+
             using var response = await httpClient.GetAsync(url, HttpCompletionOption.ResponseHeadersRead);
             response.EnsureSuccessStatusCode();
 
@@ -1713,5 +1737,46 @@ public static class VersionChecker
             LoggerHelper.Error($"代理初始化失败: {ex.Message}");
             return new HttpClient();
         }
+    }
+    /// <summary>
+    /// 从URL中提取文件扩展名
+    /// </summary>
+    private static string GetFileExtensionFromUrl(string url)
+    {
+        try
+        {
+            // 解析URL路径部分
+            Uri uri = new Uri(url);
+            string path = Uri.UnescapeDataString(uri.LocalPath);
+
+            // 提取扩展名（自动处理带查询参数的情况）
+            return Path.GetExtension(path);
+        }
+        catch (Exception ex)
+        {
+            LoggerHelper.Warning($"解析URL扩展名失败: {ex.Message}");
+            return string.Empty;
+        }
+    }
+
+    /// <summary>
+    /// 从Content-Disposition头解析文件名（可选增强）
+    /// </summary>
+    private static string? ParseFileNameFromContentDisposition(string contentDisposition)
+    {
+        // 示例格式: "attachment; filename=resource.tar.gz"
+        const string filenamePrefix = "filename=";
+        int index = contentDisposition.IndexOf(filenamePrefix, StringComparison.OrdinalIgnoreCase);
+        if (index >= 0)
+        {
+            string filename = contentDisposition.Substring(index + filenamePrefix.Length);
+            // 移除引号
+            if (filename.StartsWith("\"") && filename.EndsWith("\""))
+            {
+                filename = filename[1..^1];
+            }
+            return filename;
+        }
+        return null;
     }
 }
