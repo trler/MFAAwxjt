@@ -47,7 +47,7 @@ public static class SimpleEncryptionHelper
                 }
                 catch (UnauthorizedAccessException)
                 {
-                    LoggerHelper.Warning("无法访问/sys/class/dmi/id/product_uuid，尝试备选方法");
+                    LoggerHelper.Warning("权限不足，无法访问/sys/class/dmi/id/product_uuid，尝试备选方法");
                 }
                 catch (Exception ex)
                 {
