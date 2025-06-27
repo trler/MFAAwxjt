@@ -525,7 +525,6 @@ public static class VersionChecker
                     {
                         Process.Start(Process.GetCurrentProcess().MainModule?.FileName ?? string.Empty);
                         Instances.ShutdownApplication();
-                        Instances.ApplicationLifetime.Shutdown();
                     }, dismissOnClick: true, "Flat", "Accent")
                     .WithActionButton("No".ToLocalization(), _ =>
                     {
