@@ -1,5 +1,6 @@
 ﻿using AvaloniaExtensions.Axaml.Markup;
 using MFAAvalonia.Extensions.MaaFW;
+using MFAAvalonia.Helper;
 using MFAAvalonia.ViewModels.Other;
 using System;
 using System.Collections;
@@ -188,5 +189,26 @@ public static class MFAExtensions
             throw new ArgumentOutOfRangeException(nameof(source), "源索引越界");
         if (target < 0 || target > list.Count)
             throw new ArgumentOutOfRangeException(nameof(target), "目标索引越界");
+    }
+
+    public static string GetName(this VersionChecker.VersionType type)
+    {
+        return type.ToString().ToLower();
+    }
+
+    public static VersionChecker.VersionType ToVersionType(this string version)
+    {
+        if (version.Contains("alpha", StringComparison.OrdinalIgnoreCase))
+            return VersionChecker.VersionType.Alpha;
+        if (version.Contains("beta", StringComparison.OrdinalIgnoreCase)) return VersionChecker.VersionType.Beta;
+        return VersionChecker.VersionType.Stable;
+    }
+    
+    public static VersionChecker.VersionType ToVersionType(this int version)
+    {
+        if (version == 0)
+            return VersionChecker.VersionType.Alpha;
+        if (version == 1) return VersionChecker.VersionType.Beta;
+        return VersionChecker.VersionType.Stable;
     }
 }

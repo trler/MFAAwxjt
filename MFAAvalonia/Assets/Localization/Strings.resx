@@ -1093,13 +1093,13 @@
         <value>自定义成功通知内容</value>
     </data>
     <data name="BetaVersion" xml:space="preserve">
-        <value>测试版</value>
+        <value>公测版</value>
     </data>
     <data name="StableVersion" xml:space="preserve">
         <value>正式版</value>
     </data>
-    <data name="UpdateChannel" xml:space="preserve">
-        <value>更新渠道</value>
+    <data name="ResourceUpdateChannel" xml:space="preserve">
+        <value>资源更新渠道</value>
     </data>
     <data name="UpdateLog" xml:space="preserve">
         <value>更新日志</value>
@@ -1115,5 +1115,11 @@
     </data>
     <data name="Extracting" xml:space="preserve">
         <value>正在解压</value>
+    </data>
+    <data name="AlphaVersion" xml:space="preserve">
+        <value>内测版</value>
+    </data>
+    <data name="UIUpdateChannel" xml:space="preserve">
+        <value>UI 更新渠道</value>
     </data>
 </root>

@@ -44,18 +44,33 @@ public partial class VersionUpdateSettingsUserControlModel : ViewModelBase
         ConfigurationManager.Current.SetValue(ConfigurationKeys.DownloadSourceIndex, value);
     }
 
-    public ObservableCollection<LocalizationViewModel> UpdateChannelList =>
+    public ObservableCollection<LocalizationViewModel> UIUpdateChannelList =>
     [
+        new("AlphaVersion"),
         new("BetaVersion"),
         new("StableVersion"),
     ];
-    [ObservableProperty] private int _updateChannelIndex = ConfigurationManager.Current.GetValue(ConfigurationKeys.UpdateChannelIndex, 1);
+    
+    [ObservableProperty] private int _uIUpdateChannelIndex = ConfigurationManager.Current.GetValue(ConfigurationKeys.UIUpdateChannelIndex, 2);
 
-    partial void OnUpdateChannelIndexChanged(int value)
+    partial void OnUIUpdateChannelIndexChanged(int value)
     {
-        ConfigurationManager.Current.SetValue(ConfigurationKeys.UpdateChannelIndex, value);
+        ConfigurationManager.Current.SetValue(ConfigurationKeys.UIUpdateChannelIndex, value);
     }
+    public ObservableCollection<LocalizationViewModel> ResourceUpdateChannelList =>
+    [
+        new("AlphaVersion"),
+        new("BetaVersion"),
+        new("StableVersion"),
+    ];
+    
+    [ObservableProperty] private int _resourceUpdateChannelIndex = ConfigurationManager.Current.GetValue(ConfigurationKeys.ResourceUpdateChannelIndex, 2);
 
+    partial void OnResourceUpdateChannelIndexChanged(int value)
+    {
+        ConfigurationManager.Current.SetValue(ConfigurationKeys.ResourceUpdateChannelIndex, value);
+    }
+    
     [ObservableProperty] private string _gitHubToken = SimpleEncryptionHelper.Decrypt(ConfigurationManager.Current.GetValue(ConfigurationKeys.GitHubToken, string.Empty));
 
     partial void OnGitHubTokenChanged(string value) => HandlePropertyChanged(ConfigurationKeys.GitHubToken, SimpleEncryptionHelper.Encrypt(value));

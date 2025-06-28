@@ -1091,8 +1091,8 @@
     <data name="StableVersion" xml:space="preserve">
         <value>Stable</value>
     </data>
-    <data name="UpdateChannel" xml:space="preserve">
-        <value>Update Channel</value>
+    <data name="ResourceUpdateChannel" xml:space="preserve">
+        <value>Resource Update Channel</value>
     </data>
     <data name="UpdateLog" xml:space="preserve">
         <value>Update Log</value>
@@ -1108,5 +1108,11 @@
     </data>
     <data name="Extracting" xml:space="preserve">
         <value>Extracting</value>
+    </data>
+    <data name="AlphaVersion" xml:space="preserve">
+        <value>Alpha</value>
+    </data>
+    <data name="UIUpdateChannel" xml:space="preserve">
+        <value>UI Update Channel</value>
     </data>
 </root>

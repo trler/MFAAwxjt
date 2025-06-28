@@ -68,16 +68,32 @@
                 <DockPanel>
                     <ComboBox
                         DockPanel.Dock="Right"
-                        ItemsSource="{Binding UpdateChannelList}"
+                        ItemsSource="{Binding UIUpdateChannelList}"
                         DisplayMemberBinding="{Binding Name}" Width="215"
-                        SelectedIndex="{Binding UpdateChannelIndex}"
+                        SelectedIndex="{Binding UIUpdateChannelIndex}"
                         IsEnabled="{Binding !IsUpdating, Source={x:Static helper:Instances.RootViewModel}}"
                         VerticalAlignment="Top" />
                     <StackPanel HorizontalAlignment="Left" VerticalAlignment="Center">
                         <TextBlock
                             FontSize="16"
                             FontWeight="SemiBold"
-                            Text="{markup:I18n {x:Static helper:LangKeys.UpdateChannel}}"
+                            Text="{markup:I18n {x:Static helper:LangKeys.UIUpdateChannel}}"
+                            VerticalAlignment="Center" />
+                    </StackPanel>
+                </DockPanel>
+                <DockPanel>
+                    <ComboBox
+                        DockPanel.Dock="Right"
+                        ItemsSource="{Binding ResourceUpdateChannelList}"
+                        DisplayMemberBinding="{Binding Name}" Width="215"
+                        SelectedIndex="{Binding ResourceUpdateChannelIndex}"
+                        IsEnabled="{Binding !IsUpdating, Source={x:Static helper:Instances.RootViewModel}}"
+                        VerticalAlignment="Top" />
+                    <StackPanel HorizontalAlignment="Left" VerticalAlignment="Center">
+                        <TextBlock
+                            FontSize="16"
+                            FontWeight="SemiBold"
+                            Text="{markup:I18n {x:Static helper:LangKeys.ResourceUpdateChannel}}"
                             VerticalAlignment="Center" />
                     </StackPanel>
                 </DockPanel>

@@ -37,6 +37,13 @@ namespace MFAAvalonia.Helper;
 #pragma warning  disable CS4014 // 由于此调用不会等待，因此在此调用完成之前将会继续执行当前方法。
 public static class VersionChecker
 {
+    public enum VersionType
+    {
+        Alpha,
+        Beta,
+        Stable
+    }
+
     private static readonly ConcurrentQueue<ValueType.MFATask> Queue = new();
     public static void Check()
     {
@@ -989,8 +996,16 @@ public static class VersionChecker
     }
 
 
-    public static void GetLatestVersionAndDownloadUrlFromGithub(out string url, out string latestVersion, string owner = "SweetSmellFox", string repo = "MFAAvalonia", bool onlyCheck = false, string targetVersion = "")
+    public static void GetLatestVersionAndDownloadUrlFromGithub(out string url,
+        out string latestVersion,
+        string owner = "SweetSmellFox",
+        string repo = "MFAAvalonia",
+        bool onlyCheck = false,
+        string targetVersion = "")
     {
+        var versionType = repo.Equals("MFAAvalonia", StringComparison.OrdinalIgnoreCase)
+            ? Instances.VersionUpdateSettingsUserControlModel.UIUpdateChannelIndex.ToVersionType()
+            : Instances.VersionUpdateSettingsUserControlModel.ResourceUpdateChannelIndex.ToVersionType();
         url = string.Empty;
         latestVersion = string.Empty;
 
@@ -1030,7 +1045,14 @@ public static class VersionChecker
                     }
                     foreach (var tag in tags)
                     {
-                        if ((bool)tag["prerelease"] && !AllowBetaVersion())
+                        if ((bool)tag["prerelease"] && versionType == VersionType.Stable)
+                        {
+                            continue;
+                        }
+                        var isAlpha = latestVersion.Contains("alpha", StringComparison.OrdinalIgnoreCase);
+                        var isBeta = latestVersion.Contains("beta", StringComparison.OrdinalIgnoreCase);
+
+                        if (isAlpha && versionType != VersionType.Alpha || isBeta && versionType != VersionType.Beta && versionType != VersionType.Alpha)
                         {
                             continue;
                         }
@@ -1197,9 +1219,10 @@ public static class VersionChecker
         out string latestVersion,
         string userAgent = "MFA",
         bool isUI = false,
-        bool onlyCheck = false)
+        bool onlyCheck = false
+    )
     {
-
+        var versionType = isUI ? Instances.VersionUpdateSettingsUserControlModel.UIUpdateChannelIndex.ToVersionType() : Instances.VersionUpdateSettingsUserControlModel.ResourceUpdateChannelIndex.ToVersionType();
         if (string.IsNullOrWhiteSpace(resId))
         {
             throw new Exception("CurrentResourcesNotSupportMirror".ToLocalization());
@@ -1220,7 +1243,7 @@ public static class VersionChecker
             Architecture.Arm64 => "arm64",
             _ => "unknown"
         };
-        var channel = AllowBetaVersion() ? "alpha" : "stable";
+        var channel = versionType.GetName();
         var multiplatformString = multiplatform ? $"os={os}&arch={arch}&" : "";
         var releaseUrl = isUI
             ? $"https://mirrorchyan.com/api/resources/{resId}/latest?channel={channel}&current_version={version}&{cdkD}os={os}&arch={arch}"
@@ -1680,10 +1703,6 @@ public static class VersionChecker
         }
     }
 
-    public static bool AllowBetaVersion()
-    {
-        return Instances.VersionUpdateSettingsUserControlModel.UpdateChannelIndex == 0;
-    }
 
     public static HttpClient CreateHttpClientWithProxy()
     {
