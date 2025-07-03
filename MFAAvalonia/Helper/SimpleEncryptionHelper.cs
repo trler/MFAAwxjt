@@ -133,7 +133,7 @@ public static class SimpleEncryptionHelper
         try
         {
             var key = GetDeviceKeys();
-            var decryptedData = EncryptProvider.AESDecrypt(encryptedBase64, key);
+            var decryptedData = string.IsNullOrWhiteSpace(encryptedBase64) ? encryptedBase64 : EncryptProvider.AESDecrypt(encryptedBase64, key);
             return decryptedData;
         }
         catch (Exception e)
