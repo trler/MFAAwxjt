@@ -15,6 +15,7 @@ using MFAAvalonia.Views.UserControls;
 using MFAAvalonia.Views.UserControls.Settings;
 using MFAAvalonia.Views.Windows;
 using Microsoft.Extensions.DependencyInjection;
+using SharpHook;
 using SukiUI.Dialogs;
 using SukiUI.Toasts;
 using System;
@@ -156,20 +157,25 @@ public partial class App : Application
     {
         try
         {
-            bool isDBusServiceUnknown = false;
-            string errorMessage = string.Empty;
+            var shouldIgnore = false;
+            var errorMessage = string.Empty;
             
             foreach (var innerEx in e.Exception.InnerExceptions ?? Enumerable.Empty<Exception>())
             {
                 if (innerEx is Tmds.DBus.Protocol.DBusException dbusEx && dbusEx.ErrorName == "org.freedesktop.DBus.Error.ServiceUnknown" && dbusEx.Message.Contains("com.canonical.AppMenu.Registrar"))
                 {
-                    isDBusServiceUnknown = true;
+                    shouldIgnore = true;
                     errorMessage = "检测到DBus服务(com.canonical.AppMenu.Registrar)不可用，这在非Unity桌面环境中是正常现象";
                     break;
                 }
+                if (innerEx is HookException)
+                {
+                    shouldIgnore = true;
+                    errorMessage = "macOS中的全局快捷键Hook异常，可能是由于权限不足或系统限制导致的";
+                }
             }
 
-            if (isDBusServiceUnknown)
+            if (shouldIgnore)
             {
                 LoggerHelper.Warning(errorMessage);
                 LoggerHelper.Warning(e.Exception);
