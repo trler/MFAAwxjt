@@ -854,7 +854,7 @@ public class MaaProcessor
                     }
                 }
             }
-            var resourceP = string.IsNullOrWhiteSpace(Instances.TaskQueueViewModel.CurrentResource) ? ResourceBase: Instances.TaskQueueViewModel.CurrentResource;
+            var resourceP = string.IsNullOrWhiteSpace(Instances.TaskQueueViewModel.CurrentResource) ? ResourceBase : Instances.TaskQueueViewModel.CurrentResource;
             if (fileCount == 0)
             {
                 if (!string.IsNullOrWhiteSpace($"{resourceP}/pipeline") && !Directory.Exists($"{resourceP}/pipeline"))
@@ -1014,6 +1014,15 @@ public class MaaProcessor
 
     private void LoadTasks(List<MaaInterface.MaaInterfaceTask> tasks, IList<DragItemViewModel>? oldDrags = null)
     {
+        var currentTasks = ConfigurationManager.Current.GetValue(ConfigurationKeys.CurrentTasks, new List<string>());
+        if (currentTasks.Count <= 0)
+        {
+            currentTasks.AddRange(tasks
+                .Select(t => $"{t.Name}:{t.Entry}")
+                .Distinct()
+                .ToList());
+            ConfigurationManager.Current.SetValue(ConfigurationKeys.CurrentTasks, currentTasks);
+        }
         var items = ConfigurationManager.Current.GetValue(ConfigurationKeys.TaskItems, new List<MaaInterface.MaaInterfaceTask>()) ?? [];
         var drags = (oldDrags?.ToList() ?? []).Union(items.Select(interfaceItem => new DragItemViewModel(interfaceItem))).ToList();
 
@@ -1023,8 +1032,8 @@ public class MaaProcessor
             FirstTask = false;
         }
 
-
-        var (updateList, removeList) = SynchronizeTaskItems(drags, tasks);
+        var (updateList, removeList) = SynchronizeTaskItems(ref currentTasks, drags, tasks);
+        ConfigurationManager.Current.SetValue(ConfigurationKeys.CurrentTasks, currentTasks);
         updateList.RemoveAll(d => removeList.Contains(d));
 
         UpdateViewModels(updateList, tasks);
@@ -1048,10 +1057,17 @@ public class MaaProcessor
             Instances.TaskQueueViewModel.CurrentResource = Instances.TaskQueueViewModel.CurrentResources[0].Name ?? "Default";
     }
 
-    private (List<DragItemViewModel> updateList, List<DragItemViewModel> removeList) SynchronizeTaskItems(
+    private (List<DragItemViewModel> updateList, List<DragItemViewModel> removeList) SynchronizeTaskItems(ref List<string> currentTasks,
         IList<DragItemViewModel> drags,
         List<MaaInterface.MaaInterfaceTask> tasks)
     {
+        var currentTaskSet = new HashSet<(string Name, string Entry)>(
+            currentTasks
+                .Select(t => t.Split(':', 2))
+                .Where(parts => parts.Length == 2)
+                .Select(parts => (parts[0], parts[1]))
+        );
+
         var newDict = tasks
             .GroupBy(t => (t.Name, t.Entry)) // 按键分组
             .ToDictionary(
@@ -1084,6 +1100,19 @@ public class MaaProcessor
                 {
                     removeList.Add(oldItem);
                 }
+            }
+        }
+
+        foreach (var task in tasks)
+        {
+            var key = (task.Name, task.Entry);
+            if (!currentTaskSet.Contains(key))
+            {
+                // 创建新的DragItemViewModel并添加到updateList
+                var newDragItem = new DragItemViewModel(task);
+                updateList.Add(newDragItem);
+
+                currentTasks.Add($"{task.Name}:{task.Entry}");
             }
         }
 

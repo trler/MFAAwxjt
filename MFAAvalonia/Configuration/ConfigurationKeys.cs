@@ -130,6 +130,8 @@ public static class ConfigurationKeys
     public const string GitHubToken = "GitHubToken";
     public const string ProxyAddress  = "ProxyAddress";   
     public const string ProxyType = "ProxyType";
+    public const string CurrentTasks = "CurrentTasks";
+    
     #endregion
 
     #region UI设置
@@ -141,4 +143,5 @@ public static class ConfigurationKeys
     public const string MainWindowHeight = "UI.MainWindow.Height";
     
     #endregion
+    
 }
