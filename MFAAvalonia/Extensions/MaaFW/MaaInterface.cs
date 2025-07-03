@@ -38,6 +38,10 @@ public partial class MaaInterface
         public List<MaaInterfaceOptionCase>? Cases { get; set; }
         [JsonProperty("default_case")]
         public string? DefaultCase { get; set; }
+        
+        [JsonProperty("doc")]
+        [JsonConverter(typeof(GenericSingleOrListConverter<string>))]
+        public List<string>? Document { get; set; }
     }
     
     public class MaaInterfaceSelectAdvanced

@@ -776,16 +776,34 @@ public partial class TaskQueueView : UserControl
         Grid.SetColumn(combo, 1);
         var textBlock = new TextBlock
         {
-            FontSize = 14,
-            MinWidth = 180,
+            FontSize = 14, HorizontalAlignment = HorizontalAlignment.Left,
             VerticalAlignment = VerticalAlignment.Center,
-            HorizontalAlignment = HorizontalAlignment.Left,
+
             Text = LanguageHelper.GetLocalizedString(option.Name),
         };
         textBlock.Bind(TextBlock.ForegroundProperty, new DynamicResourceExtension("SukiLowText"));
-        Grid.SetColumn(textBlock, 0);
+
+        var stackPanel = new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            MinWidth = 180,
+            VerticalAlignment = VerticalAlignment.Center,
+            HorizontalAlignment = HorizontalAlignment.Left,
+        };
+        Grid.SetColumn(stackPanel, 0);
+        stackPanel.Children.Add(textBlock);
+        if (interfaceOption.Document != null && interfaceOption.Document.Count > 0)
+        {
+            var input = Regex.Unescape(string.Join("\\n", interfaceOption.Document));
+
+            var docBlock = new TooltipBlock
+            {
+                TooltipText = input
+            };
+            stackPanel.Children.Add(docBlock);
+        }
         grid.Children.Add(combo);
-        grid.Children.Add(textBlock);
+        grid.Children.Add(stackPanel);
         grid.SizeChanged += (sender, e) =>
         {
             var currentGrid = sender as Grid;
@@ -809,9 +827,9 @@ public partial class TaskQueueView : UserControl
                     Height = GridLength.Auto
                 });
 
-                Grid.SetRow(textBlock, 0);
+                Grid.SetRow(stackPanel, 0);
                 Grid.SetRow(combo, 1);
-                Grid.SetColumn(textBlock, 0);
+                Grid.SetColumn(stackPanel, 0);
                 Grid.SetColumn(combo, 0);
             }
             else
@@ -828,9 +846,9 @@ public partial class TaskQueueView : UserControl
                     Width = new GridLength(4, GridUnitType.Star)
                 });
 
-                Grid.SetRow(textBlock, 0);
+                Grid.SetRow(stackPanel, 0);
                 Grid.SetRow(combo, 0);
-                Grid.SetColumn(textBlock, 0);
+                Grid.SetColumn(stackPanel, 0);
                 Grid.SetColumn(combo, 1);
             }
         };
