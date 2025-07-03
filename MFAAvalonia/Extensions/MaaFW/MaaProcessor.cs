@@ -41,9 +41,9 @@ public class MaaProcessor
 
     private static MaaInterface? _interface;
 
-    public Dictionary<string, MaaNode> BaseNodes = new();
-
-    public Dictionary<string, MaaNode> NodeDictionary = new();
+    // public Dictionary<string, MaaNode> BaseNodes = new();
+    //
+    // public Dictionary<string, MaaNode> NodeDictionary = new();
     public ObservableQueue<MFATask> TaskQueue { get; } = new();
 
     public MaaProcessor()
@@ -803,7 +803,7 @@ public class MaaProcessor
     {
         try
         {
-            var taskDictionary = new Dictionary<string, MaaNode>();
+            var fileCount = 0;
             if (Instances.TaskQueueViewModel.CurrentResources.Count > 0)
             {
                 if (string.IsNullOrWhiteSpace(Instances.TaskQueueViewModel.CurrentResource) && !string.IsNullOrWhiteSpace(Instances.TaskQueueViewModel.CurrentResources[0].Name))
@@ -821,39 +821,40 @@ public class MaaProcessor
                         var jsonFiles = Directory.GetFiles(Path.GetFullPath($"{resourcePath}/pipeline/"), "*.json", SearchOption.AllDirectories);
                         var jsoncFiles = Directory.GetFiles(Path.GetFullPath($"{resourcePath}/pipeline/"), "*.jsonc", SearchOption.AllDirectories);
                         var allFiles = jsonFiles.Concat(jsoncFiles).ToArray();
-                        var taskDictionaryA = new Dictionary<string, MaaNode>();
-                        foreach (var file in allFiles)
-                        {
-                            if (file.Contains("default_pipeline.json", StringComparison.OrdinalIgnoreCase))
-                                continue;
-                            var content = File.ReadAllText(file);
-                            LoggerHelper.Info($"Loading Pipeline: {file}");
-                            try
-                            {
-                                var taskData = JsonConvert.DeserializeObject<Dictionary<string, MaaNode>>(content);
-                                if (taskData == null || taskData.Count == 0)
-                                    continue;
-                                foreach (var task in taskData)
-                                {
-                                    if (!taskDictionaryA.TryAdd(task.Key, task.Value))
-                                    {
-                                        ToastHelper.Error("DuplicateTaskError".ToLocalizationFormatted(false, task.Key));
-                                        return false;
-                                    }
-                                }
-                            }
-                            catch (Exception e)
-                            {
-                                LoggerHelper.Warning(e);
-                            }
-                        }
+                        fileCount = allFiles.Length;
+                        // var taskDictionaryA = new Dictionary<string, MaaNode>();
+                        // foreach (var file in allFiles)
+                        // {
+                        //     if (file.Contains("default_pipeline.json", StringComparison.OrdinalIgnoreCase))
+                        //         continue;
+                        //     var content = File.ReadAllText(file);
+                        //     LoggerHelper.Info($"Loading Pipeline: {file}");
+                        //     try
+                        //     {
+                        //         var taskData = JsonConvert.DeserializeObject<Dictionary<string, MaaNode>>(content);
+                        //         if (taskData == null || taskData.Count == 0)
+                        //             continue;
+                        //         foreach (var task in taskData)
+                        //         {
+                        //             if (!taskDictionaryA.TryAdd(task.Key, task.Value))
+                        //             {
+                        //                 ToastHelper.Error("DuplicateTaskError".ToLocalizationFormatted(false, task.Key));
+                        //                 return false;
+                        //             }
+                        //         }
+                        //     }
+                        //     catch (Exception e)
+                        //     {
+                        //         LoggerHelper.Warning(e);
+                        //     }
+                        // }
 
-                        taskDictionary = taskDictionary.MergeMaaNodes(taskDictionaryA);
+                        // taskDictionary = taskDictionary.MergeMaaNodes(taskDictionaryA);
                     }
                 }
             }
 
-            if (taskDictionary.Count == 0)
+            if (fileCount == 0)
             {
                 if (!string.IsNullOrWhiteSpace($"{ResourceBase}/pipeline") && !Directory.Exists($"{ResourceBase}/pipeline"))
                 {
@@ -894,7 +895,7 @@ public class MaaProcessor
                 }
             }
 
-            PopulateTasks(taskDictionary);
+            // PopulateTasks(taskDictionary);
 
             return true;
         }
@@ -910,12 +911,12 @@ public class MaaProcessor
 
     private void PopulateTasks(Dictionary<string, MaaNode> taskDictionary)
     {
-        BaseNodes = taskDictionary;
-        foreach (var task in taskDictionary)
-        {
-            task.Value.Name = task.Key;
-            ValidateTaskLinks(taskDictionary, task);
-        }
+        // BaseNodes = taskDictionary;
+        // foreach (var task in taskDictionary)
+        // {
+        //     task.Value.Name = task.Key;
+        //     ValidateTaskLinks(taskDictionary, task);
+        // }
     }
 
     private void ValidateTaskLinks(Dictionary<string, MaaNode> taskDictionary,
@@ -1691,11 +1692,11 @@ public class MaaProcessor
         public string? Entry { get; set; }
         public int? Count { get; set; }
 
-        public Dictionary<string, MaaNode>? Tasks
-        {
-            get;
-            set;
-        }
+        // public Dictionary<string, MaaNode>? Tasks
+        // {
+        //     get;
+        //     set;
+        // }
         public string? Param { get; set; }
     }
 
@@ -1704,7 +1705,7 @@ public class MaaProcessor
         List<MaaInterface.MaaInterfaceSelectOption>? options,
         List<MaaInterface.MaaInterfaceSelectAdvanced>? advanceds)
     {
-        Instance.NodeDictionary = Instance.NodeDictionary.MergeMaaNodes(taskModels);
+        // Instance.NodeDictionary = Instance.NodeDictionary.MergeMaaNodes(taskModels);
         if (options != null)
         {
             foreach (var selectOption in options)
@@ -1717,7 +1718,7 @@ public class MaaProcessor
                     && cases[index]?.PipelineOverride != null)
                 {
                     var param = interfaceOption.Cases[selectOption.Index.Value].PipelineOverride;
-                    Instance.NodeDictionary = Instance.NodeDictionary.MergeMaaNodes(param);
+                    //       Instance.NodeDictionary = Instance.NodeDictionary.MergeMaaNodes(param);
                     taskModels = taskModels.MergeMaaNodes(param);
                 }
             }
@@ -1730,7 +1731,7 @@ public class MaaProcessor
                 if (!string.IsNullOrWhiteSpace(selectAdvanced.PipelineOverride) && selectAdvanced.PipelineOverride != "{}")
                 {
                     var param = JsonConvert.DeserializeObject<Dictionary<string, MaaNode>>(selectAdvanced.PipelineOverride);
-                    Instance.NodeDictionary = Instance.NodeDictionary.MergeMaaNodes(param);
+                    //       Instance.NodeDictionary = Instance.NodeDictionary.MergeMaaNodes(param);
                     taskModels = taskModels.MergeMaaNodes(param);
                 }
             }
@@ -1773,16 +1774,16 @@ public class MaaProcessor
             NullValueHandling = NullValueHandling.Ignore,
             DefaultValueHandling = DefaultValueHandling.Ignore
         };
-        var json = JsonConvert.SerializeObject(Instance.BaseNodes, settings);
-
-        var tasks = JsonConvert.DeserializeObject<Dictionary<string, MaaNode>>(json, settings);
-        tasks = tasks.MergeMaaNodes(taskModels);
+        // var json = JsonConvert.SerializeObject(Instance.BaseNodes, settings);
+        //
+        // var tasks = JsonConvert.DeserializeObject<Dictionary<string, MaaNode>>(json, settings);
+        // tasks = tasks.MergeMaaNodes(taskModels);
         return new NodeAndParam
         {
             Name = task.InterfaceItem?.Name,
             Entry = task.InterfaceItem?.Entry,
             Count = task.InterfaceItem?.Repeatable == true ? (task.InterfaceItem?.RepeatCount ?? 1) : 1,
-            Tasks = tasks,
+            // Tasks = tasks,
             Param = taskParams
         };
     }
@@ -1896,8 +1897,8 @@ public class MaaProcessor
                 async () =>
                 {
                     token.ThrowIfCancellationRequested();
-                    if (task.Tasks != null)
-                        NodeDictionary = task.Tasks;
+                    // if (task.Tasks != null)
+                    //     NodeDictionary = task.Tasks;
                     await TryRunTasksAsync(MaaTasker, task.Entry, task.Param, token);
                 }, task.Count ?? 1
             ));
