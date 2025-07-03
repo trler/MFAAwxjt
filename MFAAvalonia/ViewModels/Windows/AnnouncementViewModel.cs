@@ -29,6 +29,7 @@ public partial class AnnouncementViewModel : ViewModelBase
         GlobalConfiguration.SetValue(ConfigurationKeys.DoNotShowChangelogAgain, value.ToString());
     }
 
+    
     [ObservableProperty] private AnnouncementType _type = AnnouncementType.Announcement;
 
     public static void CheckReleaseNote()

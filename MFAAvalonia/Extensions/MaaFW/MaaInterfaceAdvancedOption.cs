@@ -18,6 +18,9 @@ public class MaaInterfaceAdvancedOption
     [JsonConverter(typeof(GenericSingleOrListConverter<string>))] [JsonProperty("default")]
     public List<string>? Default;
     [JsonProperty("pipeline_override")] public Dictionary<string, Dictionary<string, JToken>>? PipelineOverride;
+    [JsonProperty("doc")]
+    [JsonConverter(typeof(GenericSingleOrListConverter<string>))]
+    public List<string>? Document { get; set; }
     private Dictionary<string, Type> GetTypeMap()
     {
         var typeMap = new Dictionary<string, Type>();

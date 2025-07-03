@@ -531,7 +531,7 @@ public partial class TaskQueueView : UserControl
                 Margin = new Thickness(8, 0, 5, 5)
             };
 
-            var combo = new TextBox()
+            var combo = new TextBox
             {
                 MinWidth = 150,
                 Margin = new Thickness(0, 5, 5, 5),
@@ -555,16 +555,35 @@ public partial class TaskQueueView : UserControl
             var textBlock = new TextBlock
             {
                 FontSize = 14,
-                MinWidth = 180,
                 VerticalAlignment = VerticalAlignment.Center,
                 HorizontalAlignment = HorizontalAlignment.Left,
                 Text = LanguageHelper.GetLocalizedString(field),
             };
 
             textBlock.Bind(TextBlock.ForegroundProperty, new DynamicResourceExtension("SukiLowText"));
-            Grid.SetColumn(textBlock, 0);
+
+
+            var stackPanel = new StackPanel
+            {
+                MinWidth = 180,
+                VerticalAlignment = VerticalAlignment.Center,
+                HorizontalAlignment = HorizontalAlignment.Left,
+            };
+            Grid.SetColumn(stackPanel, 0);
+            stackPanel.Children.Add(textBlock);
+            if (interfaceOption.Document is { Count: > 0 })
+            {
+
+                var input = Regex.Unescape(string.Join("\\n", interfaceOption.Document));
+
+                var docBlock = new TooltipBlock
+                {
+                    TooltipText = input
+                };
+                stackPanel.Children.Add(docBlock);
+            }
             grid.Children.Add(combo);
-            grid.Children.Add(textBlock);
+            grid.Children.Add(stackPanel);
             grid.SizeChanged += (sender, e) =>
             {
                 var currentGrid = sender as Grid;
@@ -588,9 +607,9 @@ public partial class TaskQueueView : UserControl
                         Height = GridLength.Auto
                     });
 
-                    Grid.SetRow(textBlock, 0);
+                    Grid.SetRow(stackPanel, 0);
                     Grid.SetRow(combo, 1);
-                    Grid.SetColumn(textBlock, 0);
+                    Grid.SetColumn(stackPanel, 0);
                     Grid.SetColumn(combo, 0);
                 }
                 else
@@ -607,9 +626,9 @@ public partial class TaskQueueView : UserControl
                         Width = new GridLength(4, GridUnitType.Star)
                     });
 
-                    Grid.SetRow(textBlock, 0);
+                    Grid.SetRow(stackPanel, 0);
                     Grid.SetRow(combo, 0);
-                    Grid.SetColumn(textBlock, 0);
+                    Grid.SetColumn(stackPanel, 0);
                     Grid.SetColumn(combo, 1);
                 }
             };
@@ -620,7 +639,7 @@ public partial class TaskQueueView : UserControl
     {
         if (MaaProcessor.Interface?.Option?.TryGetValue(option.Name ?? string.Empty, out var interfaceOption) != true) return;
         Control control = interfaceOption.Cases.ShouldSwitchButton(out var yes, out var no)
-            ? CreateToggleControl(option, yes, no, source)
+            ? CreateToggleControl(option, yes, no, interfaceOption, source)
             : CreateComboBoxControl(option, interfaceOption, source);
 
         panel.Children.Add(control);
@@ -630,6 +649,7 @@ public partial class TaskQueueView : UserControl
         MaaInterface.MaaInterfaceSelectOption option,
         int yesValue,
         int noValue,
+        MaaInterface.MaaInterfaceOption interfaceOption,
         DragItemViewModel source
     )
     {
@@ -687,10 +707,24 @@ public partial class TaskQueueView : UserControl
             },
             Margin = new Thickness(0, 0, 0, 5)
         };
+        var stackPanel = new StackPanel
+        {
+            VerticalAlignment = VerticalAlignment.Center,
+            HorizontalAlignment = HorizontalAlignment.Left,
+        };
+        if (interfaceOption.Document is { Count: > 0 })
+        {
+            var input = Regex.Unescape(string.Join("\\n", interfaceOption.Document));
 
-        Grid.SetColumn(textBlock, 0);
+            var docBlock = new TooltipBlock
+            {
+                TooltipText = input
+            };
+            stackPanel.Children.Add(docBlock);
+        }
+        Grid.SetColumn(stackPanel, 0);
         Grid.SetColumn(button, 2);
-        grid.Children.Add(textBlock);
+        grid.Children.Add(stackPanel);
         grid.Children.Add(button);
 
         return grid;
@@ -776,7 +810,8 @@ public partial class TaskQueueView : UserControl
         Grid.SetColumn(combo, 1);
         var textBlock = new TextBlock
         {
-            FontSize = 14, HorizontalAlignment = HorizontalAlignment.Left,
+            FontSize = 14,
+            HorizontalAlignment = HorizontalAlignment.Left,
             VerticalAlignment = VerticalAlignment.Center,
 
             Text = LanguageHelper.GetLocalizedString(option.Name),
@@ -792,7 +827,7 @@ public partial class TaskQueueView : UserControl
         };
         Grid.SetColumn(stackPanel, 0);
         stackPanel.Children.Add(textBlock);
-        if (interfaceOption.Document != null && interfaceOption.Document.Count > 0)
+        if (interfaceOption.Document is { Count: > 0 })
         {
             var input = Regex.Unescape(string.Join("\\n", interfaceOption.Document));
 
