@@ -34,6 +34,7 @@ public partial class App : Application
 
     public override void Initialize()
     {
+        LoggerHelper.InitializeLogger();
         AvaloniaXamlLoader.Load(this);
         LanguageHelper.Initialize();
         ConfigurationManager.Initialize();

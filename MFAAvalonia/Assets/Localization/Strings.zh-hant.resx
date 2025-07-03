@@ -1115,4 +1115,13 @@
     <data name="UIUpdateChannel" xml:space="preserve">
         <value>UI 更新渠道</value>
     </data>
+    <data name="ExportLog" xml:space="preserve">
+        <value>導出日誌</value>
+    </data>
+    <data name="Warning" xml:space="preserve">
+        <value>警告</value>
+    </data>
+    <data name="StopTaskBeforeExportLog" xml:space="preserve">
+        <value>導出日誌前請停止任務</value>
+    </data>
 </root>

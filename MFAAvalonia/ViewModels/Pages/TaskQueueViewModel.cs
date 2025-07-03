@@ -420,7 +420,12 @@ public partial class TaskQueueViewModel : ViewModelBase
     {
         LogItemViewModels.Clear();
     }
-
+    [RelayCommand]
+    private void Export()
+    {
+        FileLogExporter.CompressRecentLogs(Instances.RootView.StorageProvider);
+    }
+    
     public void AutoDetectDevice(CancellationToken token = default)
     {
         var isAdb = CurrentController == MaaControllerTypes.Adb;

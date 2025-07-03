@@ -1115,4 +1115,13 @@
     <data name="UIUpdateChannel" xml:space="preserve">
         <value>UI Update Channel</value>
     </data>
+    <data name="ExportLog" xml:space="preserve">
+        <value>Export Log</value>
+    </data>
+    <data name="Warning" xml:space="preserve">
+        <value>Warning</value>
+    </data>
+    <data name="StopTaskBeforeExportLog" xml:space="preserve">
+        <value>Please stop the task before exporting logs</value>
+    </data>
 </root>

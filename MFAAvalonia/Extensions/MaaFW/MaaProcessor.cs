@@ -91,6 +91,7 @@ public class MaaProcessor
     {
         if (maaTasker == null)
         {
+            MaaTasker?.Dispose();
             if (_agentClient != null)
                 LoggerHelper.Info("退出Agent进程");
             _agentClient?.LinkStop();
@@ -853,14 +854,14 @@ public class MaaProcessor
                     }
                 }
             }
-
+            var resourceP = string.IsNullOrWhiteSpace(Instances.TaskQueueViewModel.CurrentResource) ? ResourceBase: Instances.TaskQueueViewModel.CurrentResource;
             if (fileCount == 0)
             {
-                if (!string.IsNullOrWhiteSpace($"{ResourceBase}/pipeline") && !Directory.Exists($"{ResourceBase}/pipeline"))
+                if (!string.IsNullOrWhiteSpace($"{resourceP}/pipeline") && !Directory.Exists($"{resourceP}/pipeline"))
                 {
                     try
                     {
-                        Directory.CreateDirectory($"{ResourceBase}/pipeline");
+                        Directory.CreateDirectory($"{resourceP}/pipeline");
                     }
                     catch (Exception ex)
                     {
@@ -868,11 +869,11 @@ public class MaaProcessor
                     }
                 }
 
-                if (!File.Exists($"{ResourceBase}/pipeline/sample.json"))
+                if (!File.Exists($"{resourceP}/pipeline/sample.json"))
                 {
                     try
                     {
-                        File.WriteAllText($"{ResourceBase}/pipeline/sample.json",
+                        File.WriteAllText($"{resourceP}/pipeline/sample.json",
                             JsonConvert.SerializeObject(new Dictionary<string, MaaNode>
                             {
                                 {

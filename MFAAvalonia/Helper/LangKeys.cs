@@ -378,4 +378,5 @@ public static class LangKeys
 	public static readonly string Extracting = "Extracting";
 	public static readonly string AlphaVersion = "AlphaVersion";
 	public static readonly string UIUpdateChannel = "UIUpdateChannel";
+	public static readonly string ExportLog = "ExportLog";
 }
