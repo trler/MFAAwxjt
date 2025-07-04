@@ -31,7 +31,7 @@ public class MaaInterfaceAdvancedOption
             var typeName = type.ToLower();
             typeMap[Field[i]] = typeName switch
             {
-                "int" => typeof(int),
+                "int" => typeof(long),
                 "float" => typeof(float),
                 "bool" => typeof(bool),
                 _ => typeof(string)
