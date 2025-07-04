@@ -156,9 +156,9 @@ public static class VersionChecker
 
             string latestVersion = string.Empty;
             if (isGithub)
-                GetLatestVersionAndDownloadUrlFromGithub(out var downloadUrl, out latestVersion, strings[0], strings[1], true);
+                GetLatestVersionAndDownloadUrlFromGithub(out var downloadUrl, out latestVersion, strings[0], strings[1], true,currentVersion: resourceVersion);
             else
-                GetDownloadUrlFromMirror(resourceVersion, GetResourceID(), CDK(), out _, out latestVersion, onlyCheck: true);
+                GetDownloadUrlFromMirror(resourceVersion, GetResourceID(), CDK(), out _, out latestVersion, onlyCheck: true,currentVersion: resourceVersion);
 
             if (string.IsNullOrWhiteSpace(latestVersion))
             {
@@ -290,9 +290,9 @@ public static class VersionChecker
         try
         {
             if (isGithub)
-                GetLatestVersionAndDownloadUrlFromGithub(out downloadUrl, out latestVersion, strings[0], strings[1]);
+                GetLatestVersionAndDownloadUrlFromGithub(out downloadUrl, out latestVersion, strings[0], strings[1],currentVersion: localVersion);
             else
-                GetDownloadUrlFromMirror(localVersion, GetResourceID(), CDK(), out downloadUrl, out latestVersion);
+                GetDownloadUrlFromMirror(localVersion, GetResourceID(), CDK(), out downloadUrl, out latestVersion,currentVersion: localVersion);
 
         }
         catch (Exception ex)
@@ -1001,7 +1001,7 @@ public static class VersionChecker
         string owner = "SweetSmellFox",
         string repo = "MFAAvalonia",
         bool onlyCheck = false,
-        string targetVersion = "")
+        string targetVersion = "",string currentVersion = "v0.0.0")
     {
         var versionType = repo.Equals("MFAAvalonia", StringComparison.OrdinalIgnoreCase)
             ? Instances.VersionUpdateSettingsUserControlModel.UIUpdateChannelIndex.ToVersionType()
@@ -1059,19 +1059,25 @@ public static class VersionChecker
                         latestVersion = tag["tag_name"]?.ToString() ?? string.Empty;
                         if (!string.IsNullOrEmpty(targetVersion) && latestVersion.Trim().Equals(targetVersion.Trim(), StringComparison.OrdinalIgnoreCase))
                         {
-                            if (onlyCheck && repo != "MFAAvalonia")
-                                SaveRelease(tag, "body");
-                            if (!onlyCheck && repo != "MFAAvalonia")
-                                SaveAnnouncement(tag, "body");
+                            if (IsNewVersionAvailable(latestVersion, currentVersion))
+                            {
+                                if (onlyCheck && repo != "MFAAvalonia")
+                                    SaveRelease(tag, "body");
+                                if (!onlyCheck && repo != "MFAAvalonia")
+                                    SaveChangelog(tag, "body");
+                            }
                             url = GetDownloadUrlFromGitHubRelease(latestVersion, owner, repo);
                             return;
                         }
                         if (string.IsNullOrEmpty(targetVersion) && !string.IsNullOrEmpty(latestVersion))
                         {
-                            if (onlyCheck && repo != "MFAAvalonia")
-                                SaveRelease(tag, "body");
-                            if (!onlyCheck && repo != "MFAAvalonia")
-                                SaveAnnouncement(tag, "body");
+                            if (IsNewVersionAvailable(latestVersion, currentVersion))
+                            {
+                                if (onlyCheck && repo != "MFAAvalonia")
+                                    SaveRelease(tag, "body");
+                                if (!onlyCheck && repo != "MFAAvalonia")
+                                    SaveChangelog(tag, "body");
+                            }
                             url = GetDownloadUrlFromGitHubRelease(latestVersion, owner, repo);
                             return;
                         }
@@ -1219,7 +1225,7 @@ public static class VersionChecker
         out string latestVersion,
         string userAgent = "MFA",
         bool isUI = false,
-        bool onlyCheck = false
+        bool onlyCheck = false,string currentVersion = "v0.0.0"
     )
     {
         var versionType = isUI ? Instances.VersionUpdateSettingsUserControlModel.UIUpdateChannelIndex.ToVersionType() : Instances.VersionUpdateSettingsUserControlModel.ResourceUpdateChannelIndex.ToVersionType();
@@ -1274,17 +1280,22 @@ public static class VersionChecker
 
             // 成功处理
             var data = responseData["data"]!;
-            if (onlyCheck && !isUI && data != null)
-            {
-                SaveRelease(data, "release_note");
-            }
-            if (!onlyCheck && !isUI && data != null)
-            {
-                SaveAnnouncement(data, "release_note");
-            }
+
 
             url = data["url"]?.ToString() ?? string.Empty;
             latestVersion = data["version_name"]?.ToString() ?? string.Empty;
+            
+            if (IsNewVersionAvailable(latestVersion, currentVersion))
+            {
+                if (onlyCheck && !isUI && data != null)
+                {
+                    SaveRelease(data, "release_note");
+                }
+                if (!onlyCheck && !isUI && data != null)
+                {
+                    SaveChangelog(data, "release_note");
+                }
+            }
             if (exception != null)
                 throw exception;
         }
@@ -1682,7 +1693,7 @@ public static class VersionChecker
         }
     }
 
-    private static void SaveAnnouncement(JToken? releaseData, string from)
+    private static void SaveChangelog(JToken? releaseData, string from)
     {
         try
         {
