@@ -41,7 +41,7 @@ public partial class TooltipBlock : UserControl
             coerce: CoerceOpacity);
 
     public static readonly StyledProperty<int> InitialShowDelayProperty =
-        AvaloniaProperty.Register<TooltipBlock, int>(nameof(InitialShowDelay), 200);
+        AvaloniaProperty.Register<TooltipBlock, int>(nameof(InitialShowDelay), 100);
 
     public string TooltipText
     {
