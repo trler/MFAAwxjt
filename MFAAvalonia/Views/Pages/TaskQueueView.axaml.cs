@@ -507,13 +507,69 @@ public partial class TaskQueueView : UserControl
         panel.Children.Add(grid);
     }
 
+    
+
+
+    private bool IsValidIntegerInput(string text)
+    {
+        // 空字符串或仅包含负号是允许的
+        if (string.IsNullOrEmpty(text) || text == "-")
+            return true;
+    
+        // 检查是否以负号开头，且负号只出现一次
+        if (text.StartsWith("-") && (text.Length == 1 || (!char.IsDigit(text[1]) || text.LastIndexOf("-") != 0)))
+            return false;
+    
+        // 检查是否只包含数字和可能的负号
+        for (int i = 0; i < text.Length; i++)
+        {
+            if (i == 0 && text[i] == '-')
+                continue; // 允许第一个字符是负号
+        
+            if (!char.IsDigit(text[i]))
+                return false; // 其他字符必须是数字
+        }
+    
+        return true;
+    }
+    private string FilterToInteger(string text)
+    {
+        // 1. 去除所有非数字和非负号字符
+        string filtered = new string(text.Where(c => c == '-' || char.IsDigit(c)).ToArray());
+    
+        // 2. 处理负号位置和数量
+        if (filtered.Contains('-'))
+        {
+            // 确保负号只出现在开头且只有一个
+            if (filtered[0] != '-' || filtered.Count(c => c == '-') > 1)
+            {
+                filtered = filtered.Replace("-", "");
+            }
+        }
+    
+        // 3. 处理空字符串或仅负号的情况
+        if (string.IsNullOrEmpty(filtered) || filtered == "-")
+        {
+            return filtered;
+        }
+    
+        // 4. 去除前导零
+        if (filtered.Length > 1 && filtered[0] == '0')
+        {
+            filtered = filtered.TrimStart('0');
+        }
+    
+        return filtered;
+    }
+    
     private void AddAdvancedOption(Panel panel, MaaInterface.MaaInterfaceSelectAdvanced option)
     {
         if (MaaProcessor.Interface?.Advanced?.TryGetValue(option.Name, out var interfaceOption) != true) return;
 
-        for (int i = 0; i < (interfaceOption.Field?.Count ?? 0); i++)
+        for (int i = 0; interfaceOption.Field != null && i < interfaceOption.Field.Count; i++)
         {
             var field = interfaceOption.Field[i];
+            var type = i < (interfaceOption.Type?.Count ?? 0) ? (interfaceOption.Type?[i] ?? "string") : (interfaceOption.Type?.Count > 0 ? interfaceOption.Type[0] : "string");
             var defaultValue = option.Data.TryGetValue(field, out var value) ? value : ((interfaceOption.Default?.Count ?? 0) > i ? interfaceOption.Default[i] : string.Empty);
             var grid = new Grid
             {
@@ -531,7 +587,7 @@ public partial class TaskQueueView : UserControl
                 Margin = new Thickness(8, 0, 5, 5)
             };
 
-            var combo = new TextBox
+            var textBox = new TextBox
             {
                 MinWidth = 150,
                 Margin = new Thickness(0, 5, 5, 5),
@@ -539,19 +595,33 @@ public partial class TaskQueueView : UserControl
             };
 
 
-            combo.Bind(IsEnabledProperty, new Binding("Idle")
+            
+            textBox.Bind(IsEnabledProperty, new Binding("Idle")
             {
                 Source = Instances.RootViewModel
             });
 
-            combo.TextChanged += (_, _) =>
+            textBox.TextChanged += (_, _) =>
             {
-                option.Data[field] = combo.Text;
+                if (type.ToLower() == "int")
+                {
+                    if (!IsValidIntegerInput(textBox.Text))
+                    {
+                        textBox.Text = FilterToInteger(textBox.Text);
+                        // 保持光标位置
+                        if (textBox.SelectionStart > textBox.Text.Length)
+                        {
+                            textBox.SelectionStart = textBox.Text.Length;
+                        }
+                    }
+                }
+
+                option.Data[field] = textBox.Text;
                 option.PipelineOverride = interfaceOption.GenerateProcessedPipeline(option.Data);
                 SaveConfiguration();
             };
 
-            Grid.SetColumn(combo, 1);
+            Grid.SetColumn(textBox, 1);
             var textBlock = new TextBlock
             {
                 FontSize = 14,
@@ -565,11 +635,12 @@ public partial class TaskQueueView : UserControl
 
             var stackPanel = new StackPanel
             {
-                MinWidth = 180,Orientation = Orientation.Horizontal,
+                MinWidth = 180,
+                Orientation = Orientation.Horizontal,
                 VerticalAlignment = VerticalAlignment.Center,
                 HorizontalAlignment = HorizontalAlignment.Left,
             };
-            
+
             Grid.SetColumn(stackPanel, 0);
             stackPanel.Children.Add(textBlock);
             if (interfaceOption.Document is { Count: > 0 })
@@ -583,7 +654,7 @@ public partial class TaskQueueView : UserControl
                 };
                 stackPanel.Children.Add(docBlock);
             }
-            grid.Children.Add(combo);
+            grid.Children.Add(textBox);
             grid.Children.Add(stackPanel);
             grid.SizeChanged += (sender, e) =>
             {
@@ -609,9 +680,9 @@ public partial class TaskQueueView : UserControl
                     });
 
                     Grid.SetRow(stackPanel, 0);
-                    Grid.SetRow(combo, 1);
+                    Grid.SetRow(textBox, 1);
                     Grid.SetColumn(stackPanel, 0);
-                    Grid.SetColumn(combo, 0);
+                    Grid.SetColumn(textBox, 0);
                 }
                 else
                 {
@@ -628,9 +699,9 @@ public partial class TaskQueueView : UserControl
                     });
 
                     Grid.SetRow(stackPanel, 0);
-                    Grid.SetRow(combo, 0);
+                    Grid.SetRow(textBox, 0);
                     Grid.SetColumn(stackPanel, 0);
-                    Grid.SetColumn(combo, 1);
+                    Grid.SetColumn(textBox, 1);
                 }
             };
             panel.Children.Add(grid);
