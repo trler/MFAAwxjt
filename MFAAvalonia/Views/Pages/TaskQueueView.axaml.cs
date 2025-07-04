@@ -565,10 +565,11 @@ public partial class TaskQueueView : UserControl
 
             var stackPanel = new StackPanel
             {
-                MinWidth = 180,
+                MinWidth = 180,Orientation = Orientation.Horizontal,
                 VerticalAlignment = VerticalAlignment.Center,
                 HorizontalAlignment = HorizontalAlignment.Left,
             };
+            
             Grid.SetColumn(stackPanel, 0);
             stackPanel.Children.Add(textBlock);
             if (interfaceOption.Document is { Count: > 0 })
