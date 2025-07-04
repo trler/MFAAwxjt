@@ -91,6 +91,7 @@ public class MaaProcessor
     {
         if (maaTasker == null)
         {
+            MaaTasker?.Dispose();
             if (_agentClient != null)
                 LoggerHelper.Info("退出Agent进程");
             _agentClient?.LinkStop();
@@ -277,7 +278,7 @@ public class MaaProcessor
                 Resource = maaResource,
                 Utility = MaaProcessor.Utility,
                 Toolkit = MaaProcessor.Toolkit,
-                DisposeOptions = DisposeOptions.All,
+                DisposeOptions = DisposeOptions.None,
             };
 
             // 获取代理配置（假设Interface在UI线程中访问）
