@@ -709,6 +709,7 @@ public partial class TaskQueueView : UserControl
         };
         var stackPanel = new StackPanel
         {
+            Orientation = Orientation.Horizontal,
             VerticalAlignment = VerticalAlignment.Center,
             HorizontalAlignment = HorizontalAlignment.Left,
         };
