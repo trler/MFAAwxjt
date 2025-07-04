@@ -123,7 +123,16 @@ public partial class RootView : SukiWindow
             e.Cancel = true;
             ConfirmExit(() => OnClosed(e));
         }
-        base.OnClosing(e);
+        else
+        {
+            ConfigurationManager.Current.SetValue(ConfigurationKeys.TaskItems, Instances.TaskQueueViewModel.TaskItemViewModels.ToList().Select(model => model.InterfaceItem));
+            
+            SaveWindowSize();
+
+            MaaProcessor.Instance.SetTasker();
+            GlobalHotkeyService.Shutdown();
+            Environment.Exit(0);
+        }
     }
 
     protected override void OnClosed(EventArgs e)
