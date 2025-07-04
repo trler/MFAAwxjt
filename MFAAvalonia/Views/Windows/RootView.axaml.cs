@@ -125,12 +125,7 @@ public partial class RootView : SukiWindow
         }
         else
         {
-            ConfigurationManager.Current.SetValue(ConfigurationKeys.TaskItems, Instances.TaskQueueViewModel.TaskItemViewModels.ToList().Select(model => model.InterfaceItem));
-            
-            SaveWindowSize();
-
-            MaaProcessor.Instance.SetTasker();
-            GlobalHotkeyService.Shutdown();
+            OnClosed(e);
             Environment.Exit(0);
         }
     }
@@ -143,8 +138,9 @@ public partial class RootView : SukiWindow
 
             // 确保窗口大小被保存
             SaveWindowSize();
-
+            
             MaaProcessor.Instance.SetTasker();
+            LoggerHelper.DisposeLogger();
             GlobalHotkeyService.Shutdown();
         }
         base.OnClosed(e);
