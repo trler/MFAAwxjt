@@ -712,6 +712,7 @@ public partial class TaskQueueView : UserControl
             VerticalAlignment = VerticalAlignment.Center,
             HorizontalAlignment = HorizontalAlignment.Left,
         };
+        stackPanel.Children.Add(textBlock);
         if (interfaceOption.Document is { Count: > 0 })
         {
             var input = Regex.Unescape(string.Join("\\n", interfaceOption.Document));
