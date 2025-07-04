@@ -91,11 +91,11 @@ public class MaaProcessor
     {
         if (maaTasker == null)
         {
-            MaaTasker?.Dispose();
             if (_agentClient != null)
                 LoggerHelper.Info("退出Agent进程");
             _agentClient?.LinkStop();
             _agentClient?.Dispose();
+            MaaTasker?.Dispose();
             _agentClient = null;
             _agentStarted = false;
             _agentProcess?.Kill();
