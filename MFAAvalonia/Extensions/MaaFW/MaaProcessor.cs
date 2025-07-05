@@ -1012,17 +1012,22 @@ public class MaaProcessor
 
     private bool FirstTask = true;
 
+    const string NEW_SEPARATOR = "<|||>";
+    const string OLD_SEPARATOR = ":";
+
     private void LoadTasks(List<MaaInterface.MaaInterfaceTask> tasks, IList<DragItemViewModel>? oldDrags = null)
     {
         var currentTasks = ConfigurationManager.Current.GetValue(ConfigurationKeys.CurrentTasks, new List<string>());
-        if (currentTasks.Count <= 0)
+        if (currentTasks.Count <= 0 || currentTasks.Any(t => t.Contains(OLD_SEPARATOR) && !t.Contains(NEW_SEPARATOR)))
         {
+            currentTasks.Clear();
             currentTasks.AddRange(tasks
-                .Select(t => $"{t.Name}:{t.Entry}")
+                .Select(t => $"{t.Name}{NEW_SEPARATOR}{t.Entry}")
                 .Distinct()
                 .ToList());
             ConfigurationManager.Current.SetValue(ConfigurationKeys.CurrentTasks, currentTasks);
         }
+
         var items = ConfigurationManager.Current.GetValue(ConfigurationKeys.TaskItems, new List<MaaInterface.MaaInterfaceTask>()) ?? [];
         var drags = (oldDrags?.ToList() ?? []).Union(items.Select(interfaceItem => new DragItemViewModel(interfaceItem))).ToList();
 
@@ -1063,7 +1068,7 @@ public class MaaProcessor
     {
         var currentTaskSet = new HashSet<(string Name, string Entry)>(
             currentTasks
-                .Select(t => t.Split(':', 2))
+                .Select(t => t.Split(NEW_SEPARATOR, 2))
                 .Where(parts => parts.Length == 2)
                 .Select(parts => (parts[0], parts[1]))
         );
