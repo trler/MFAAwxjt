@@ -696,7 +696,9 @@ public partial class TaskQueueView : UserControl
                     autoCompleteBox.IsDropDownOpen = true;
                 }
             };
-
+            option.Data[field] = autoCompleteBox.Text;
+            option.PipelineOverride = interfaceOption.GenerateProcessedPipeline(option.Data);
+            SaveConfiguration();
 // 选择项变化事件
             autoCompleteBox.SelectionChanged += (_, _) =>
             {

@@ -138,7 +138,7 @@ public partial class RootView : SukiWindow
 
             // 确保窗口大小被保存
             SaveWindowSize();
-            
+
             MaaProcessor.Instance.SetTasker();
             LoggerHelper.DisposeLogger();
             GlobalHotkeyService.Shutdown();
@@ -252,15 +252,19 @@ public partial class RootView : SukiWindow
 
             Instances.RootViewModel.LockController = (MaaProcessor.Interface?.Controller?.Count ?? 0) < 2;
             ConfigurationManager.Current.SetValue(ConfigurationKeys.EnableEdit, ConfigurationManager.Current.GetValue(ConfigurationKeys.EnableEdit, false));
-
+            DragItemViewModel tempTask = null;
             foreach (var task in Instances.TaskQueueViewModel.TaskItemViewModels)
             {
                 if (task.InterfaceItem?.Advanced is { Count: > 0 } || task.InterfaceItem?.Option is { Count: > 0 } || task.InterfaceItem?.Document != null || task.InterfaceItem?.Repeatable == true)
                 {
-                    task.EnableSetting = true;
-                    break;
+                    tempTask ??= task;
                 }
+                Instances.TaskQueueView.SetOption(task, true, true);
             }
+
+            if (tempTask != null)
+                tempTask.EnableSetting = true;
+
 
             if (!string.IsNullOrWhiteSpace(MaaProcessor.Interface?.Message))
             {
