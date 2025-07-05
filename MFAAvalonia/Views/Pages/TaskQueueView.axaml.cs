@@ -734,9 +734,17 @@ public partial class TaskQueueView : UserControl
             stackPanel.Children.Add(textBlock);
 
             // 文档提示部分（保持不变）
-            if (interfaceOption.Document is { Count: > 0 })
+            if (interfaceOption.Document is { Count: > 0 } && i < interfaceOption.Document.Count)
             {
-                var input = Regex.Unescape(string.Join("\\n", interfaceOption.Document));
+                var doc = interfaceOption.Document[i];
+                var input = doc;
+                try
+                {
+                    input = Regex.Unescape(doc);
+                }
+                catch (Exception)
+                {
+                }
                 var docBlock = new TooltipBlock
                 {
                     TooltipText = input
