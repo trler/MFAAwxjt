@@ -279,7 +279,7 @@ public partial class RootView : SukiWindow
             DispatcherHelper.RunOnMainThread(() =>
             {
                 DispatcherHelper.RunOnMainThread(VersionChecker.CheckMinVersion);
-                AnnouncementViewModel.CheckChangelog();
+                ChangelogViewModel.CheckChangelog();
                 AnnouncementViewModel.CheckAnnouncement();
                 if (ConfigurationManager.Current.GetValue(ConfigurationKeys.AutoMinimize, false))
                 {

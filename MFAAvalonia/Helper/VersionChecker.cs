@@ -156,9 +156,9 @@ public static class VersionChecker
 
             string latestVersion = string.Empty;
             if (isGithub)
-                GetLatestVersionAndDownloadUrlFromGithub(out var downloadUrl, out latestVersion, strings[0], strings[1], true,currentVersion: resourceVersion);
+                GetLatestVersionAndDownloadUrlFromGithub(out var downloadUrl, out latestVersion, strings[0], strings[1], true, currentVersion: resourceVersion);
             else
-                GetDownloadUrlFromMirror(resourceVersion, GetResourceID(), CDK(), out _, out latestVersion, onlyCheck: true,currentVersion: resourceVersion);
+                GetDownloadUrlFromMirror(resourceVersion, GetResourceID(), CDK(), out _, out latestVersion, onlyCheck: true, currentVersion: resourceVersion);
 
             if (string.IsNullOrWhiteSpace(latestVersion))
             {
@@ -175,7 +175,7 @@ public static class VersionChecker
                         .WithActionButton("Later".ToLocalization(), _ => { }, true, SukiButtonStyles.Basic)
                         .WithActionButton("Update".ToLocalization(), _ => UpdateResourceAsync(), true).Queue();
                 });
-                DispatcherHelper.RunOnMainThread(AnnouncementViewModel.CheckReleaseNote);
+                DispatcherHelper.RunOnMainThread(ChangelogViewModel.CheckReleaseNote);
             }
             else
             {
@@ -290,9 +290,9 @@ public static class VersionChecker
         try
         {
             if (isGithub)
-                GetLatestVersionAndDownloadUrlFromGithub(out downloadUrl, out latestVersion, strings[0], strings[1],currentVersion: localVersion);
+                GetLatestVersionAndDownloadUrlFromGithub(out downloadUrl, out latestVersion, strings[0], strings[1], currentVersion: localVersion);
             else
-                GetDownloadUrlFromMirror(localVersion, GetResourceID(), CDK(), out downloadUrl, out latestVersion,currentVersion: localVersion);
+                GetDownloadUrlFromMirror(localVersion, GetResourceID(), CDK(), out downloadUrl, out latestVersion, currentVersion: localVersion);
 
         }
         catch (Exception ex)
@@ -394,7 +394,7 @@ public static class VersionChecker
                 foreach (var rfile in Directory.EnumerateFiles(resourcePath, "*", SearchOption.AllDirectories))
                 {
                     var fileName = Path.GetFileName(rfile);
-                    if (fileName.Equals(AnnouncementViewModel.ChangelogFileName, StringComparison.OrdinalIgnoreCase))
+                    if (fileName.Equals(ChangelogViewModel.ChangelogFileName, StringComparison.OrdinalIgnoreCase))
                         continue;
 
                     try
@@ -488,7 +488,7 @@ public static class VersionChecker
         var di = new DirectoryInfo(originPath);
         if (di.Exists)
         {
-            DirectoryMerge(originPath, wpfDir, false);
+            DirectoryMerge(originPath, wpfDir, false, true);
         }
 
         SetProgress(progress, 70);
@@ -1001,7 +1001,8 @@ public static class VersionChecker
         string owner = "SweetSmellFox",
         string repo = "MFAAvalonia",
         bool onlyCheck = false,
-        string targetVersion = "",string currentVersion = "v0.0.0")
+        string targetVersion = "",
+        string currentVersion = "v0.0.0")
     {
         var versionType = repo.Equals("MFAAvalonia", StringComparison.OrdinalIgnoreCase)
             ? Instances.VersionUpdateSettingsUserControlModel.UIUpdateChannelIndex.ToVersionType()
@@ -1225,7 +1226,8 @@ public static class VersionChecker
         out string latestVersion,
         string userAgent = "MFA",
         bool isUI = false,
-        bool onlyCheck = false,string currentVersion = "v0.0.0"
+        bool onlyCheck = false,
+        string currentVersion = "v0.0.0"
     )
     {
         var versionType = isUI ? Instances.VersionUpdateSettingsUserControlModel.UIUpdateChannelIndex.ToVersionType() : Instances.VersionUpdateSettingsUserControlModel.ResourceUpdateChannelIndex.ToVersionType();
@@ -1284,7 +1286,7 @@ public static class VersionChecker
 
             url = data["url"]?.ToString() ?? string.Empty;
             latestVersion = data["version_name"]?.ToString() ?? string.Empty;
-            
+
             if (IsNewVersionAvailable(latestVersion, currentVersion))
             {
                 if (onlyCheck && !isUI && data != null)
@@ -1631,7 +1633,7 @@ public static class VersionChecker
         }
     }
 // 修改 DirectoryMerge 方法中的文件复制逻辑
-    private static void DirectoryMerge(string sourceDirName, string destDirName, bool overwriteMFA = true)
+    private static void DirectoryMerge(string sourceDirName, string destDirName, bool overwriteMFA = true, bool saveAnnouncement = false)
     {
         var dir = new DirectoryInfo(sourceDirName);
         var dirs = dir.GetDirectories();
@@ -1654,6 +1656,10 @@ public static class VersionChecker
                 if (overwriteMFA
                     || !Path.GetFileName(tempPath).Contains("MFAUpdater") && !Path.GetFileName(tempPath).Contains("MFAAvalonia") && !Path.GetFileName(tempPath).Contains(Process.GetCurrentProcess().MainModule?.ModuleName ?? string.Empty))
                 {
+                    if (saveAnnouncement && tempPath.Contains(AnnouncementViewModel.AnnouncementFolder))
+                    {
+                        GlobalConfiguration.SetValue(ConfigurationKeys.DoNotShowAnnouncementAgain, bool.FalseString);
+                    }
                     LoggerHelper.Info("Copying file: " + tempPath);
                     file.CopyTo(tempPath, true);
                 }
@@ -1682,14 +1688,14 @@ public static class VersionChecker
             {
                 var resourceDirectory = Path.Combine(AppContext.BaseDirectory, "resource");
                 Directory.CreateDirectory(resourceDirectory);
-                var filePath = Path.Combine(resourceDirectory, AnnouncementViewModel.ReleaseFileName);
+                var filePath = Path.Combine(resourceDirectory, ChangelogViewModel.ReleaseFileName);
                 File.WriteAllText(filePath, bodyContent);
-                LoggerHelper.Info($"{AnnouncementViewModel.ReleaseFileName} saved successfully.");
+                LoggerHelper.Info($"{ChangelogViewModel.ReleaseFileName} saved successfully.");
             }
         }
         catch (Exception ex)
         {
-            LoggerHelper.Error($"Error saving {AnnouncementViewModel.ReleaseFileName}: {ex.Message}");
+            LoggerHelper.Error($"Error saving {ChangelogViewModel.ReleaseFileName}: {ex.Message}");
         }
     }
 
@@ -1702,15 +1708,15 @@ public static class VersionChecker
             {
                 var resourceDirectory = Path.Combine(AppContext.BaseDirectory, "resource");
                 Directory.CreateDirectory(resourceDirectory);
-                var filePath = Path.Combine(resourceDirectory, AnnouncementViewModel.ChangelogFileName);
+                var filePath = Path.Combine(resourceDirectory, ChangelogViewModel.ChangelogFileName);
                 File.WriteAllText(filePath, bodyContent);
-                LoggerHelper.Info($"{AnnouncementViewModel.ChangelogFileName} saved successfully.");
+                LoggerHelper.Info($"{ChangelogViewModel.ChangelogFileName} saved successfully.");
                 GlobalConfiguration.SetValue(ConfigurationKeys.DoNotShowChangelogAgain, bool.FalseString);
             }
         }
         catch (Exception ex)
         {
-            LoggerHelper.Error($"Error saving {AnnouncementViewModel.ChangelogFileName}: {ex.Message}");
+            LoggerHelper.Error($"Error saving {ChangelogViewModel.ChangelogFileName}: {ex.Message}");
         }
     }
 

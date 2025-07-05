@@ -2,7 +2,6 @@
 
 public enum AnnouncementType
 {
-    Announcement = 0,
-    Changelog = 1,
-    Release = 2
+    Changelog = 0,
+    Release = 1
 }

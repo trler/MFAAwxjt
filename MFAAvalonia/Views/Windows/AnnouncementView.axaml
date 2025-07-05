@@ -15,29 +15,12 @@
     xmlns:converters="clr-namespace:MFAAvalonia.Helper.Converters"
     xmlns:type="clr-namespace:MFAAvalonia.Helper.ValueType"
     xmlns:calcBinding="clr-namespace:CalcBinding;assembly=CalcBindingAva"
-    WindowStartupLocation="CenterScreen"
-    mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+    WindowStartupLocation="CenterScreen" 
+    Title="{markup:I18n {x:Static helper:LangKeys.Announcement}}"
+    mc:Ignorable="d" 
+    d:DesignWidth="800" 
+    d:DesignHeight="450"
     x:Class="MFAAvalonia.Views.Windows.AnnouncementView">
-    <suki:SukiWindow.Title>
-        <MultiBinding Converter="{converters:AnnouncementTitleConverter}" Mode="OneWay">
-            <Binding Path='Type' />
-            <markup:I18nBinding>
-                <x:Arguments>
-                    <x:Static Member="helper:LangKeys.UpcomingChanges" />
-                </x:Arguments>
-            </markup:I18nBinding>
-            <markup:I18nBinding>
-                <x:Arguments>
-                    <x:Static Member="helper:LangKeys.Announcement" />
-                </x:Arguments>
-            </markup:I18nBinding>
-            <markup:I18nBinding>
-                <x:Arguments>
-                    <x:Static Member="helper:LangKeys.UpdateLog" />
-                </x:Arguments>
-            </markup:I18nBinding>
-        </MultiBinding>
-    </suki:SukiWindow.Title>
     <suki:SukiWindow.LogoContent>
         <Image
             Height="18"
@@ -46,53 +29,70 @@
             Width="18" />
     </suki:SukiWindow.LogoContent>
     <Grid>
-        <Grid.RowDefinitions>
-            <RowDefinition Height="*" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-        </Grid.RowDefinitions>
-        <ScrollViewer
-            Grid.Row="0"
-            HorizontalScrollBarVisibility="Disabled"
-            VerticalScrollBarVisibility="Auto">
-            <full:MarkdownScrollViewer
-                Focusable="True"
-                Margin="10,0,10,0"
-                Markdown="{Binding AnnouncementInfo, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}">
-                <full:MarkdownScrollViewer.Plugins>
-                    <StaticResource ResourceKey="MdXamlPlugin" />
-                </full:MarkdownScrollViewer.Plugins>
-                <full:MarkdownScrollViewer.Styles>
-                    <StyleInclude Source="avares://MFAAvalonia/Assets/Style/MdXamlStyles.axaml" />
-                </full:MarkdownScrollViewer.Styles>
-            </full:MarkdownScrollViewer>
-        </ScrollViewer>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="200" /> <!-- 调整左侧宽度 -->
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+        <Grid Grid.Column="0">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*" /> <!-- 占满全部高度 -->
+            </Grid.RowDefinitions>
+            <ListBox 
+                Grid.Row="0" 
+                ItemsSource="{Binding AnnouncementItems}"
+                SelectedItem="{Binding SelectedAnnouncement}"
+                SelectionMode="Single"
+                Margin="5">
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <TextBlock 
+                            Text="{Binding Title}" 
+                            Margin="5" 
+                            VerticalAlignment="Center"
+                            TextWrapping="Wrap" />
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+        </Grid>
+        <Grid Grid.Column="1">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+            <ScrollViewer
+                Grid.Row="0"
+                HorizontalScrollBarVisibility="Disabled"
+                VerticalScrollBarVisibility="Auto">
+                <full:MarkdownScrollViewer
+                    Focusable="True"
+                    Margin="10,0,10,0"
+                    Markdown="{Binding SelectedAnnouncement.Content, Mode=OneWay}">
+                    <full:MarkdownScrollViewer.Plugins>
+                        <StaticResource ResourceKey="MdXamlPlugin" />
+                    </full:MarkdownScrollViewer.Plugins>
+                    <full:MarkdownScrollViewer.Styles>
+                        <StyleInclude Source="avares://MFAAvalonia/Assets/Style/MdXamlStyles.axaml" />
+                    </full:MarkdownScrollViewer.Styles>
+                </full:MarkdownScrollViewer>
+            </ScrollViewer>
 
-        <CheckBox IsVisible="{Binding Converter='{converters:UniversalEqualityConverter}',
-            Path='Type', ConverterParameter='{x:Static type:AnnouncementType.Announcement}'}"
-                  Content="{markup:I18n {x:Static helper:LangKeys.ShowDisclaimerNoMore}}"
-                  Grid.Row="1"
-                  Height="30"
-                  HorizontalAlignment="Center"
-                  IsChecked="{Binding DoNotRemindThisAnnouncementAgain}"
-                  Margin="6"
-                  VerticalContentAlignment="Center" />
-        <CheckBox
-            IsVisible="{Binding Converter='{converters:UniversalEqualityConverter}',
-            Path='Type', ConverterParameter='{x:Static type:AnnouncementType.Changelog}'}"
-            Content="{markup:I18n {x:Static helper:LangKeys.ShowDisclaimerNoMore}}"
-            Grid.Row="1"
-            Height="30"
-            HorizontalAlignment="Center"
-            IsChecked="{Binding DoNotRemindThisChangelogAgain}"
-            Margin="6"
-            VerticalContentAlignment="Center" />
-        <Button
-            Click="Close"
-            Content="{markup:I18n {x:Static helper:LangKeys.Confirm}}"
-            Grid.Row="2"
-            Height="50"
-            Margin="6"
-            MinWidth="100" />
+            <CheckBox
+                Content="{markup:I18n {x:Static helper:LangKeys.ShowDisclaimerNoMore}}"
+                Grid.Row="1"
+                Height="30"
+                HorizontalAlignment="Center"
+                IsChecked="{Binding DoNotRemindThisAnnouncementAgain}"
+                Margin="6"
+                VerticalContentAlignment="Center" />
+
+            <Button
+                Click="Close" 
+                Content="{markup:I18n {x:Static helper:LangKeys.Confirm}}"
+                Grid.Row="2"
+                Height="50"
+                Margin="6"
+                MaxWidth="200" />
+        </Grid>
     </Grid>
 </suki:SukiWindow>

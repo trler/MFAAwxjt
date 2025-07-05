@@ -19,17 +19,14 @@ public class AnnouncementTitleConverter : MarkupExtension, IMultiValueConverter
         var type = SafeGetValue<AnnouncementType>(values, 0);
         var titleA = SafeGetValue<string>(values, 1);
         var titleB = SafeGetValue<string>(values, 2);
-        var titleC = SafeGetValue<string>(values, 3);
         switch (type)
         {
             case AnnouncementType.Release:
                 return titleA;
-            case AnnouncementType.Announcement:
-                return titleB;
             case AnnouncementType.Changelog:
-                return titleC;
+                return titleB;
             default:
-                return titleC;
+                return titleB;
         }
     }
 
