@@ -46,6 +46,7 @@ using Point = Avalonia.Point;
 using VerticalAlignment = Avalonia.Layout.VerticalAlignment;
 using Avalonia.Threading;
 using MFAAvalonia.ViewModels.Other;
+using Newtonsoft.Json.Linq;
 using SukiUI.Extensions;
 
 namespace MFAAvalonia.Views.Pages;
@@ -268,10 +269,11 @@ public partial class TaskQueueView : UserControl
         Introduction.Markdown = markDown;
     }
 
-    public void SetOption(DragItemViewModel dragItem, bool value)
+    public void SetOption(DragItemViewModel dragItem, bool value, bool init = false)
     {
-        Instances.TaskQueueViewModel.IsCommon = true;
-        var cacheKey = $"{dragItem.Name}_{dragItem.InterfaceItem.GetHashCode()}";
+        if (!init)
+            Instances.TaskQueueViewModel.IsCommon = true;
+        var cacheKey = $"{dragItem.Name}_{dragItem.InterfaceItem?.GetHashCode()}";
 
         if (!value)
         {
@@ -507,36 +509,34 @@ public partial class TaskQueueView : UserControl
         panel.Children.Add(grid);
     }
 
-    
-
 
     private bool IsValidIntegerInput(string text)
     {
         // 空字符串或仅包含负号是允许的
         if (string.IsNullOrEmpty(text) || text == "-")
             return true;
-    
+
         // 检查是否以负号开头，且负号只出现一次
         if (text.StartsWith("-") && (text.Length == 1 || (!char.IsDigit(text[1]) || text.LastIndexOf("-") != 0)))
             return false;
-    
+
         // 检查是否只包含数字和可能的负号
         for (int i = 0; i < text.Length; i++)
         {
             if (i == 0 && text[i] == '-')
                 continue; // 允许第一个字符是负号
-        
+
             if (!char.IsDigit(text[i]))
                 return false; // 其他字符必须是数字
         }
-    
+
         return true;
     }
     private string FilterToInteger(string text)
     {
         // 1. 去除所有非数字和非负号字符
         string filtered = new string(text.Where(c => c == '-' || char.IsDigit(c)).ToArray());
-    
+
         // 2. 处理负号位置和数量
         if (filtered.Contains('-'))
         {
@@ -546,22 +546,22 @@ public partial class TaskQueueView : UserControl
                 filtered = filtered.Replace("-", "");
             }
         }
-    
+
         // 3. 处理空字符串或仅负号的情况
         if (string.IsNullOrEmpty(filtered) || filtered == "-")
         {
             return filtered;
         }
-    
+
         // 4. 去除前导零
         if (filtered.Length > 1 && filtered[0] == '0')
         {
             filtered = filtered.TrimStart('0');
         }
-    
+
         return filtered;
     }
-    
+
     private void AddAdvancedOption(Panel panel, MaaInterface.MaaInterfaceSelectAdvanced option)
     {
         if (MaaProcessor.Interface?.Advanced?.TryGetValue(option.Name, out var interfaceOption) != true) return;
@@ -570,7 +570,27 @@ public partial class TaskQueueView : UserControl
         {
             var field = interfaceOption.Field[i];
             var type = i < (interfaceOption.Type?.Count ?? 0) ? (interfaceOption.Type?[i] ?? "string") : (interfaceOption.Type?.Count > 0 ? interfaceOption.Type[0] : "string");
-            var defaultValue = option.Data.TryGetValue(field, out var value) ? value : ((interfaceOption.Default?.Count ?? 0) > i ? interfaceOption.Default[i] : string.Empty);
+
+            // 获取默认值（支持单值或列表）
+            string defaultValue = string.Empty;
+            if (option.Data.TryGetValue(field, out var value))
+            {
+                defaultValue = value;
+            }
+            else if (interfaceOption.Default != null && interfaceOption.Default.Count > i)
+            {
+                // 处理Default为单值或列表的情况
+                var defaultToken = interfaceOption.Default[i];
+                if (defaultToken is JArray arr)
+                {
+                    defaultValue = arr.Count > 0 ? arr[0].ToString() : string.Empty;
+                }
+                else
+                {
+                    defaultValue = defaultToken.ToString();
+                }
+            }
+
             var grid = new Grid
             {
                 ColumnDefinitions =
@@ -587,41 +607,111 @@ public partial class TaskQueueView : UserControl
                 Margin = new Thickness(8, 0, 5, 5)
             };
 
-            var textBox = new TextBox
+            // 创建AutoCompleteBox
+            var autoCompleteBox = new AutoCompleteBox
             {
                 MinWidth = 150,
                 Margin = new Thickness(0, 5, 5, 5),
-                Text = defaultValue
+                Text = defaultValue,
+                IsTextCompletionEnabled = true,
+                FilterMode = AutoCompleteFilterMode.Custom,
+                ItemFilter = (search, item) =>
+                {
+                    // 处理搜索文本为空的情况
+                    if (string.IsNullOrEmpty(search))
+                        return true;
+
+                    // 处理项为空的情况
+                    if (item == null)
+                        return false;
+
+                    // 确保项可以转换为字符串
+                    string itemText = item.ToString();
+                    if (string.IsNullOrEmpty(itemText))
+                        return false;
+
+                    // 执行包含匹配（不区分大小写）
+                    return itemText.IndexOf(search, StringComparison.InvariantCultureIgnoreCase) >= 0;
+                },
             };
 
-
-            
-            textBox.Bind(IsEnabledProperty, new Binding("Idle")
+// 绑定启用状态
+            autoCompleteBox.Bind(IsEnabledProperty, new Binding("Idle")
             {
                 Source = Instances.RootViewModel
             });
 
-            textBox.TextChanged += (_, _) =>
+// 生成补全列表（从Default获取）
+            if (interfaceOption.Default != null && interfaceOption.Default.Count > i)
+            {
+                var defaultToken = interfaceOption.Default[i];
+                var completionItems = new List<string>();
+
+                if (defaultToken is JArray arr)
+                {
+                    completionItems = arr.Select(item => item.ToString()).ToList();
+                }
+                else
+                {
+                    completionItems.Add(defaultToken.ToString());
+                    completionItems.Add(string.Empty);
+                }
+
+                autoCompleteBox.ItemsSource = completionItems;
+            }
+
+// 获得焦点时打开下拉框
+            autoCompleteBox.GotFocus += (sender, args) =>
+            {
+                // 使用 Dispatcher 确保焦点事件处理完成后再打开下拉框
+                Dispatcher.UIThread.Post(() =>
+                {
+                    autoCompleteBox.IsDropDownOpen = true;
+                }, DispatcherPriority.Background);
+            };
+
+// 文本变化事件 - 修改此处以确保文本清空时下拉框保持打开
+            autoCompleteBox.TextChanged += (_, _) =>
             {
                 if (type.ToLower() == "int")
                 {
-                    if (!IsValidIntegerInput(textBox.Text))
+                    if (!IsValidIntegerInput(autoCompleteBox.Text))
                     {
-                        textBox.Text = FilterToInteger(textBox.Text);
+                        autoCompleteBox.Text = FilterToInteger(autoCompleteBox.Text);
                         // 保持光标位置
-                        if (textBox.SelectionStart > textBox.Text.Length)
+                        if (autoCompleteBox.CaretIndex > autoCompleteBox.Text.Length)
                         {
-                            textBox.SelectionStart = textBox.Text.Length;
+                            autoCompleteBox.CaretIndex = autoCompleteBox.Text.Length;
                         }
                     }
                 }
 
-                option.Data[field] = textBox.Text;
+                option.Data[field] = autoCompleteBox.Text;
                 option.PipelineOverride = interfaceOption.GenerateProcessedPipeline(option.Data);
                 SaveConfiguration();
+
+                // 确保文本为空时下拉框保持打开
+                if (string.IsNullOrEmpty(autoCompleteBox.Text))
+                {
+                    autoCompleteBox.IsDropDownOpen = true;
+                }
             };
 
-            Grid.SetColumn(textBox, 1);
+// 选择项变化事件
+            autoCompleteBox.SelectionChanged += (_, _) =>
+            {
+                if (autoCompleteBox.SelectedItem is string selectedText)
+                {
+                    autoCompleteBox.Text = selectedText;
+                    option.Data[field] = selectedText;
+                    option.PipelineOverride = interfaceOption.GenerateProcessedPipeline(option.Data);
+                    SaveConfiguration();
+                }
+            };
+
+            Grid.SetColumn(autoCompleteBox, 1);
+
+            // 标签部分（保持不变）
             var textBlock = new TextBlock
             {
                 FontSize = 14,
@@ -629,9 +719,7 @@ public partial class TaskQueueView : UserControl
                 HorizontalAlignment = HorizontalAlignment.Left,
                 Text = LanguageHelper.GetLocalizedString(field),
             };
-
             textBlock.Bind(TextBlock.ForegroundProperty, new DynamicResourceExtension("SukiLowText"));
-
 
             var stackPanel = new StackPanel
             {
@@ -640,34 +728,32 @@ public partial class TaskQueueView : UserControl
                 VerticalAlignment = VerticalAlignment.Center,
                 HorizontalAlignment = HorizontalAlignment.Left,
             };
-
             Grid.SetColumn(stackPanel, 0);
             stackPanel.Children.Add(textBlock);
+
+            // 文档提示部分（保持不变）
             if (interfaceOption.Document is { Count: > 0 })
             {
-
                 var input = Regex.Unescape(string.Join("\\n", interfaceOption.Document));
-
                 var docBlock = new TooltipBlock
                 {
                     TooltipText = input
                 };
                 stackPanel.Children.Add(docBlock);
             }
-            grid.Children.Add(textBox);
+
+            // 布局逻辑（保持不变）
+            grid.Children.Add(autoCompleteBox);
             grid.Children.Add(stackPanel);
             grid.SizeChanged += (sender, e) =>
             {
                 var currentGrid = sender as Grid;
-
                 if (currentGrid == null) return;
 
-                // 计算所有列的 MinWidth 总和
                 var totalMinWidth = currentGrid.Children.Sum(c => c.MinWidth);
                 var availableWidth = currentGrid.Bounds.Width;
                 if (availableWidth < totalMinWidth)
                 {
-                    // 切换为上下结构（两行）
                     currentGrid.ColumnDefinitions.Clear();
                     currentGrid.RowDefinitions.Clear();
                     currentGrid.RowDefinitions.Add(new RowDefinition
@@ -678,15 +764,13 @@ public partial class TaskQueueView : UserControl
                     {
                         Height = GridLength.Auto
                     });
-
                     Grid.SetRow(stackPanel, 0);
-                    Grid.SetRow(textBox, 1);
+                    Grid.SetRow(autoCompleteBox, 1);
                     Grid.SetColumn(stackPanel, 0);
-                    Grid.SetColumn(textBox, 0);
+                    Grid.SetColumn(autoCompleteBox, 0);
                 }
                 else
                 {
-                    // 恢复左右结构（两列）
                     currentGrid.RowDefinitions.Clear();
                     currentGrid.ColumnDefinitions.Clear();
                     currentGrid.ColumnDefinitions.Add(new ColumnDefinition
@@ -697,13 +781,13 @@ public partial class TaskQueueView : UserControl
                     {
                         Width = new GridLength(4, GridUnitType.Star)
                     });
-
                     Grid.SetRow(stackPanel, 0);
-                    Grid.SetRow(textBox, 0);
+                    Grid.SetRow(autoCompleteBox, 0);
                     Grid.SetColumn(stackPanel, 0);
-                    Grid.SetColumn(textBox, 1);
+                    Grid.SetColumn(autoCompleteBox, 1);
                 }
             };
+
             panel.Children.Add(grid);
         }
     }

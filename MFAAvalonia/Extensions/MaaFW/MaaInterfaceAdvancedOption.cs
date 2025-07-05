@@ -15,8 +15,9 @@ public class MaaInterfaceAdvancedOption
     public List<string>? Field;
     [JsonConverter(typeof(GenericSingleOrListConverter<string>))] [JsonProperty("type")]
     public List<string>? Type;
-    [JsonConverter(typeof(GenericSingleOrListConverter<string>))] [JsonProperty("default")]
-    public List<string>? Default;
+    [JsonConverter(typeof(GenericSingleOrListConverter<JToken>))] 
+    [JsonProperty("default")]
+    public List<JToken>? Default;
     [JsonProperty("pipeline_override")] public Dictionary<string, Dictionary<string, JToken>>? PipelineOverride;
     [JsonProperty("doc")]
     [JsonConverter(typeof(GenericSingleOrListConverter<string>))]
@@ -155,29 +156,63 @@ public class MaaInterfaceAdvancedOption
 // 获取默认值
     private string GetDefaultValue(string placeholder, Dictionary<string, Type> typeMap)
     {
-// 从 Default 列表获取默认值
+        // 从 Default 列表获取默认值
         var fieldIndex = Field?.IndexOf(placeholder) ?? -1;
+        
         if (fieldIndex >= 0 && Default != null && fieldIndex < Default.Count)
         {
-            string defaultValue = Default[fieldIndex];
-// 如果有类型映射，尝试将默认值转换为目标类型
-            if (typeMap.TryGetValue(placeholder, out var targetType) && targetType != typeof(string))
+            var defaultToken = Default[fieldIndex];
+            
+            // 处理单个默认值
+            if (defaultToken.Type != JTokenType.Array)
             {
-                try
+                string defaultValue = defaultToken.ToString();
+                
+                // 如果有类型映射，尝试将默认值转换为目标类型
+                if (typeMap.TryGetValue(placeholder, out var targetType) && targetType != typeof(string))
                 {
-                    return Convert.ChangeType(defaultValue, targetType).ToString();
+                    try
+                    {
+                        return Convert.ChangeType(defaultValue, targetType).ToString();
+                    }
+                    catch
+                    {
+                        // 转换失败，返回原始默认值
+                        return defaultValue;
+                    }
                 }
-                catch
-                {
-// 转换失败，返回原始默认值
-                    return defaultValue;
-                }
+                
+                return defaultValue;
             }
-            return defaultValue;
+            
+            // 处理多个默认值 - 取第一个
+            var defaultArray = defaultToken as JArray;
+            if (defaultArray != null && defaultArray.Count > 0)
+            {
+                string defaultValue = defaultArray[0].ToString();
+                
+                // 如果有类型映射，尝试将默认值转换为目标类型
+                if (typeMap.TryGetValue(placeholder, out var targetType) && targetType != typeof(string))
+                {
+                    try
+                    {
+                        return Convert.ChangeType(defaultValue, targetType).ToString();
+                    }
+                    catch
+                    {
+                        // 转换失败，返回原始默认值
+                        return defaultValue;
+                    }
+                }
+                
+                return defaultValue;
+            }
         }
-// 无默认值，保持占位符
+        
+        // 无默认值，保持占位符
         return $"{{{placeholder}}}";
     }
+    
 // 处理数组类型的 Token
     private JToken ProcessArrayToken(JToken token, Regex regex, Dictionary<string, string> inputValues, Dictionary<string, Type> typeMap)
     {
