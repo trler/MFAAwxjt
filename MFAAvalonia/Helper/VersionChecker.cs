@@ -75,6 +75,7 @@ public static class VersionChecker
         TaskManager.RunTaskAsync(async () => await ExecuteTasksAsync(),
             () => ToastNotification.Show("自动更新时发生错误！"), "启动检测");
     }
+
     public static void CheckMFAVersionAsync() => TaskManager.RunTaskAsync(() => CheckForMFAUpdates(Instances.VersionUpdateSettingsUserControlModel.DownloadSourceIndex == 0));
     public static void CheckResourceVersionAsync() => TaskManager.RunTaskAsync(() => CheckForResourceUpdates(Instances.VersionUpdateSettingsUserControlModel.DownloadSourceIndex == 0));
     public static void UpdateResourceAsync() => TaskManager.RunTaskAsync(() => UpdateResource(Instances.VersionUpdateSettingsUserControlModel.DownloadSourceIndex == 0));
@@ -115,6 +116,7 @@ public static class VersionChecker
     {
         Queue.Enqueue(new ValueType.MFATask
         {
+
             Action = async () => UpdateMFA(Instances.VersionUpdateSettingsUserControlModel.DownloadSourceIndex == 0),
             Name = "更新软件"
         });
@@ -179,6 +181,7 @@ public static class VersionChecker
             }
             else
             {
+                DispatcherHelper.RunOnMainThread(ChangelogViewModel.CheckChangelog);
                 ToastHelper.Info("ResourcesAreLatestVersion".ToLocalization());
             }
             Instances.RootViewModel.SetUpdating(false);
