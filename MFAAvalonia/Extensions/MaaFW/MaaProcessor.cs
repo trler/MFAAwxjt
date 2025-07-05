@@ -2045,7 +2045,7 @@ public class MaaProcessor
             TaskQueue.Enqueue(CreateMFATask("检查更新", async () =>
             {
                 VersionChecker.Check();
-            }));
+            }, isUpdateRelated: true));
         }
     }
     private MFATask CreateMaaFWTask(string? name, Func<Task> action, int count = 1)
@@ -2059,10 +2059,11 @@ public class MaaProcessor
         };
     }
 
-    private MFATask CreateMFATask(string? name, Func<Task> action)
+    private MFATask CreateMFATask(string? name, Func<Task> action, bool isUpdateRelated = false)
     {
         return new MFATask
         {
+            IsUpdateRelated = isUpdateRelated,
             Name = name,
             Type = MFATask.MFATaskType.MFA,
             Action = action
@@ -2078,6 +2079,8 @@ public class MaaProcessor
         Status = MFATask.MFATaskStatus.NOT_STARTED;
         try
         {
+            var isUpdateRelated = TaskQueue.Any(task => task.IsUpdateRelated);
+            Console.WriteLine("任务相关:" + isUpdateRelated);
             if (!ShouldProcessStop(finished))
             {
                 ToastHelper.Warn("NoTaskToStop".ToLocalization());
@@ -2098,7 +2101,7 @@ public class MaaProcessor
                 var stopResult = true;
                 if (status != MFATask.MFATaskStatus.FAILED)
                     stopResult = AbortCurrentTasker();
-                HandleStopResult(status, stopResult, onlyStart, action);
+                HandleStopResult(status, stopResult, onlyStart, action, isUpdateRelated);
             });
 
         }
@@ -2144,7 +2147,7 @@ public class MaaProcessor
         return MaaTasker == null || MaaTasker.Stop().Wait() == MaaJobStatus.Succeeded;
     }
 
-    private void HandleStopResult(MFATask.MFATaskStatus status, bool success, bool onlyStart, Action? action = null)
+    private void HandleStopResult(MFATask.MFATaskStatus status, bool success, bool onlyStart, Action? action = null, bool isUpdateRelated = false)
     {
         if (success)
         {
@@ -2153,6 +2156,10 @@ public class MaaProcessor
         else
         {
             ToastHelper.Error("StoppingFailed".ToLocalization());
+        }
+        if (isUpdateRelated)
+        {
+            VersionChecker.Check();
         }
     }
 

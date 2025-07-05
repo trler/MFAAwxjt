@@ -32,7 +32,7 @@ public partial class MFATask : ObservableObject
     [ObservableProperty] private int _count = 1;
     [ObservableProperty] private Func<Task> _action;
     [ObservableProperty] private Dictionary<string, MaaNode> _tasks = new();
-
+    [ObservableProperty] private bool _isUpdateRelated;
 
     public async Task<MFATaskStatus> Run(CancellationToken token)
     {
