@@ -45,6 +45,7 @@ using HorizontalAlignment = Avalonia.Layout.HorizontalAlignment;
 using Point = Avalonia.Point;
 using VerticalAlignment = Avalonia.Layout.VerticalAlignment;
 using Avalonia.Threading;
+using Avalonia.Xaml.Interactivity;
 using MFAAvalonia.ViewModels.Other;
 using Newtonsoft.Json.Linq;
 using SukiUI.Extensions;
@@ -626,7 +627,7 @@ public partial class TaskQueueView : UserControl
                         return false;
 
                     // 确保项可以转换为字符串
-                    string itemText = item.ToString();
+                    var itemText = item.ToString();
                     if (string.IsNullOrEmpty(itemText))
                         return false;
 
@@ -634,18 +635,19 @@ public partial class TaskQueueView : UserControl
                     return itemText.IndexOf(search, StringComparison.InvariantCultureIgnoreCase) >= 0;
                 },
             };
+      
 
 // 绑定启用状态
             autoCompleteBox.Bind(IsEnabledProperty, new Binding("Idle")
             {
                 Source = Instances.RootViewModel
             });
-
+            var completionItems = new List<string>();
 // 生成补全列表（从Default获取）
             if (interfaceOption.Default != null && interfaceOption.Default.Count > i)
             {
                 var defaultToken = interfaceOption.Default[i];
-                var completionItems = new List<string>();
+               
 
                 if (defaultToken is JArray arr)
                 {
@@ -659,17 +661,11 @@ public partial class TaskQueueView : UserControl
 
                 autoCompleteBox.ItemsSource = completionItems;
             }
-
-// 获得焦点时打开下拉框
-            autoCompleteBox.GotFocus += (sender, args) =>
+            if (completionItems.Count > 0 && !string.IsNullOrEmpty(completionItems[0]))
             {
-                // 使用 Dispatcher 确保焦点事件处理完成后再打开下拉框
-                Dispatcher.UIThread.Post(() =>
-                {
-                    autoCompleteBox.IsDropDownOpen = true;
-                }, DispatcherPriority.Background);
-            };
-
+                var behavior = new AutoCompleteBehavior();
+                Interaction.GetBehaviors(autoCompleteBox).Add(behavior);
+            }
 // 文本变化事件 - 修改此处以确保文本清空时下拉框保持打开
             autoCompleteBox.TextChanged += (_, _) =>
             {
@@ -689,12 +685,6 @@ public partial class TaskQueueView : UserControl
                 option.Data[field] = autoCompleteBox.Text;
                 option.PipelineOverride = interfaceOption.GenerateProcessedPipeline(option.Data);
                 SaveConfiguration();
-
-                // 确保文本为空时下拉框保持打开
-                if (string.IsNullOrEmpty(autoCompleteBox.Text))
-                {
-                    autoCompleteBox.IsDropDownOpen = true;
-                }
             };
             option.Data[field] = autoCompleteBox.Text;
             option.PipelineOverride = interfaceOption.GenerateProcessedPipeline(option.Data);
