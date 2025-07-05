@@ -35,6 +35,7 @@
         <entry key="MFAAvalonia/Views/UserControls/Settings/VersionUpdateSettingsUserControl.axaml" value="MFAAvalonia/MFAAvalonia.csproj" />
         <entry key="MFAAvalonia/Views/UserControls/TooltipBlock.axaml" value="MFAAvalonia/MFAAvalonia.csproj" />
         <entry key="MFAAvalonia/Views/Windows/AnnouncementView.axaml" value="MFAAvalonia/MFAAvalonia.csproj" />
+        <entry key="MFAAvalonia/Views/Windows/ChangelogView.axaml" value="MFAAvalonia/MFAAvalonia.csproj" />
         <entry key="MFAAvalonia/Views/Windows/ErrorView.axaml" value="MFAAvalonia/MFAAvalonia.csproj" />
         <entry key="MFAAvalonia/Views/Windows/RootView.axaml" value="MFAAvalonia/MFAAvalonia.csproj" />
         <entry key="SukiUI/ColorTheme/Dark.axaml" value="MFAAvalonia/MFAAvalonia.csproj" />

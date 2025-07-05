@@ -259,7 +259,7 @@ public partial class RootView : SukiWindow
                 {
                     tempTask ??= task;
                 }
-                Instances.TaskQueueView.SetOption(task, true, true);
+                task.EnableSetting = true;
             }
 
             if (tempTask != null)

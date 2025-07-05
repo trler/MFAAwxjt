@@ -274,7 +274,7 @@ public partial class TaskQueueView : UserControl
     {
         if (!init)
             Instances.TaskQueueViewModel.IsCommon = true;
-        var cacheKey = $"{dragItem.Name}_{dragItem.InterfaceItem?.GetHashCode()}";
+        var cacheKey = $"{dragItem.Name}_{dragItem.InterfaceItem?.Entry}_{dragItem.InterfaceItem?.GetHashCode()}";
 
         if (!value)
         {
@@ -299,15 +299,17 @@ public partial class TaskQueueView : UserControl
         }
         else
         {
-            var commonPanel = CommonPanelCache.GetOrAdd(cacheKey, key =>
+            if (!init)
             {
-                var p = new StackPanel();
-                GenerateCommonPanelContent(p, dragItem);
-                CommonOptionSettings.Children.Add(p);
-                return p;
-            });
-            commonPanel.IsVisible = true;
-
+                var commonPanel = CommonPanelCache.GetOrAdd(cacheKey, key =>
+                {
+                    var p = new StackPanel();
+                    GenerateCommonPanelContent(p, dragItem);
+                    CommonOptionSettings.Children.Add(p);
+                    return p;
+                });
+                commonPanel.IsVisible = true;
+            }
             var advancedPanel = AdvancedPanelCache.GetOrAdd(cacheKey, key =>
             {
                 var p = new StackPanel();
@@ -315,24 +317,28 @@ public partial class TaskQueueView : UserControl
                 AdvancedOptionSettings.Children.Add(p);
                 return p;
             });
-            advancedPanel.IsVisible = true;
-        }
-
-        var newIntroduction = IntroductionsCache.GetOrAdd(cacheKey, key =>
-        {
-            var input = string.Empty;
-
-            // 原始带标记的文本
-            if (dragItem.InterfaceItem?.Document?.Count > 0)
+            if (!init)
             {
-                input = Regex.Unescape(string.Join("\\n", dragItem.InterfaceItem.Document));
+                advancedPanel.IsVisible = true;
             }
-            input = LanguageHelper.GetLocalizedString(input);
-            return ConvertCustomMarkup(input);
-        });
+        }
+        if (!init)
+        {
+            var newIntroduction = IntroductionsCache.GetOrAdd(cacheKey, key =>
+            {
+                var input = string.Empty;
 
-        SetMarkDown(newIntroduction);
+                // 原始带标记的文本
+                if (dragItem.InterfaceItem?.Document?.Count > 0)
+                {
+                    input = Regex.Unescape(string.Join("\\n", dragItem.InterfaceItem.Document));
+                }
+                input = LanguageHelper.GetLocalizedString(input);
+                return ConvertCustomMarkup(input);
+            });
 
+            SetMarkDown(newIntroduction);
+        }
     }
 
 
