@@ -32,7 +32,7 @@
                                 <BrushTransition Property="BorderBrush" Duration="0:0:0.2" />
                             </Transitions>
                         </Border.Transitions>
-                        <TextBox Name="PART_TextBox"
+                        <TextBox Name="PART_TextBox" suki:TextBoxExtensions.AddDeleteButton="True"
                                  BorderBrush="{TemplateBinding BorderBrush}"
                                  BorderThickness="{TemplateBinding BorderThickness}" Height="{TemplateBinding Height}"
                                  CornerRadius="{TemplateBinding CornerRadius}"
