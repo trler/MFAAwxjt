@@ -165,9 +165,14 @@ jobs:
           cd artifacts
           for f in *; do
             if [[ $f == *"win"* ]]; then
-              # Windows artifacts remain as zip
-              echo "Processing Windows artifact: $f"
-              (cd $f && zip -r ../MFAAvalonia-${{ needs.meta.outputs.tag }}-${f}.zip .)
+              # Windows artifacts: keep original zip files as they are already in correct format
+              echo "Processing Windows artifact: $f - keeping original zip format"
+              # Move zip files to root directory
+              cd $f
+              mv *.zip ../
+              cd ..
+              # Remove the original directory
+              rm -rf $f
             else
               # Unix artifacts: extract, set permissions, and repackage as tar.gz
               echo "Processing Unix artifact: $f"
@@ -190,6 +195,8 @@ jobs:
               echo "Created archive with preserved permissions: MFAAvalonia-${{ needs.meta.outputs.tag }}-${f}.tar.gz"
               
               cd ..
+              # Remove the original directory to avoid duplicate files
+              rm -rf $f
             fi
           done
         
@@ -206,8 +213,8 @@ jobs:
             ${{ needs.changelog.outputs.release_body }}
             [已有Mirror酱 CDk?前往Mirror酱 高速下载](https://mirrorchyan.com/zh/projects?rid=MFAAvalonia&source=mfaagh-release)
           files: |
-            artifacts/**/*.zip
-            artifacts/**/*.tar.gz
+            artifacts/*.zip
+            artifacts/*.tar.gz
           draft: false
           prerelease: ${{ contains(needs.meta.outputs.tag, '-') }}
           generate_release_notes: true
