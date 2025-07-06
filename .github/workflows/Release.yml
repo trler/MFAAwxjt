@@ -160,6 +160,46 @@ jobs:
         with:
           path: artifacts
         
+      - name: Process and package artifacts
+        run: |
+          cd artifacts
+          for f in *; do
+            if [[ $f == *"win"* ]]; then
+              # Windows artifacts: keep original zip files as they are already in correct format
+              echo "Processing Windows artifact: $f - keeping original zip format"
+              # Move zip files to root directory
+              cd $f
+              mv *.zip ../
+              cd ..
+              # Remove the original directory
+              rm -rf $f
+            else
+              # Unix artifacts: extract, set permissions, and repackage as tar.gz
+              echo "Processing Unix artifact: $f"
+              
+              # Extract the original zip
+              cd $f
+              unzip -q *.zip
+              rm *.zip
+              
+              # Set execute permissions for MFAAvalonia
+              find . -type f -name "MFAAvalonia*" -exec chmod +x {} \; 2>/dev/null || true
+              echo "Set execute permission for all MFAAvalonia files"
+              
+              # Set execute permissions for MFAUpdater
+              find . -type f -name "MFAUpdater*" -exec chmod +x {} \; 2>/dev/null || true
+              echo "Set execute permission for all MFAUpdater files"
+              
+              # Create tar.gz with preserved permissions
+              tar -cpzf ../MFAAvalonia-${{ needs.meta.outputs.tag }}-${f}.tar.gz .
+              echo "Created archive with preserved permissions: MFAAvalonia-${{ needs.meta.outputs.tag }}-${f}.tar.gz"
+              
+              cd ..
+              # Remove the original directory to avoid duplicate files
+              rm -rf $f
+            fi
+          done
+        
       - name: Validate Artifacts
         run: |
           ls -R artifacts
@@ -173,7 +213,8 @@ jobs:
             ${{ needs.changelog.outputs.release_body }}
             [已有Mirror酱 CDk?前往Mirror酱 高速下载](https://mirrorchyan.com/zh/projects?rid=MFAAvalonia&source=mfaagh-release)
           files: |
-            artifacts/**/*.zip
+            artifacts/*.zip
+            artifacts/*.tar.gz
           draft: false
           prerelease: ${{ contains(needs.meta.outputs.tag, '-') }}
           generate_release_notes: true
