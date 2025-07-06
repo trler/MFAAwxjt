@@ -2347,7 +2347,7 @@ public class MaaProcessor
                     remainingTime.ToString()
                 );
             }
-            else if (remainingTime == waitTimeInSeconds)
+            else if (remainingTime.Equals(waitTimeInSeconds))
             {
                 RootView.AddLogByKey("WaitSoftwareTime", null, true,
                     Instances.TaskQueueViewModel.CurrentController == MaaControllerTypes.Adb
