@@ -1827,7 +1827,7 @@ public class MaaProcessor
     {
         TaskQueue.Enqueue(CreateMFATask("启动脚本", async () =>
         {
-            await TaskManager.RunTaskAsync(() => RunScript(), token);
+            await TaskManager.RunTaskAsync(async () => await RunScript(), token);
         }));
 
         TaskQueue.Enqueue(CreateMFATask("连接设备", async () =>
@@ -1948,7 +1948,7 @@ public class MaaProcessor
         await TaskManager.RunTaskAsync((Action)(() => job.Wait().ThrowIfNot(MaaJobStatus.Succeeded)), token, (ex) => throw ex, catchException: true, shouldLog: false);
     }
 
-    public void RunScript(string str = "Prescript")
+    async private Task RunScript(string str = "Prescript")
     {
         bool enable = str switch
         {
@@ -1961,20 +1961,20 @@ public class MaaProcessor
             return;
         }
 
-        Func<bool> func = str switch
+        Func<Task<bool>> func = str switch
         {
-            "Prescript" => () => ExecuteScript(ConfigurationManager.Current.GetValue(ConfigurationKeys.Prescript, string.Empty)),
-            "Post-script" => () => ExecuteScript(ConfigurationManager.Current.GetValue(ConfigurationKeys.Postscript, string.Empty)),
-            _ => () => false,
+            "Prescript" => async () => await ExecuteScript(ConfigurationManager.Current.GetValue(ConfigurationKeys.Prescript, string.Empty)),
+            "Post-script" => async () => await ExecuteScript(ConfigurationManager.Current.GetValue(ConfigurationKeys.Postscript, string.Empty)),
+            _ => async () => false,
         };
 
-        if (!func())
+        if (!await func())
         {
             LoggerHelper.Error($"Failed to execute the {str}.");
         }
     }
 
-    private static bool ExecuteScript(string scriptPath)
+    async private static Task<bool> ExecuteScript(string scriptPath)
     {
         try
         {
@@ -2023,7 +2023,7 @@ public class MaaProcessor
                 },
             };
             process.Start();
-            process.WaitForExit();
+            await process.WaitForExitAsync();
             return true;
         }
         catch (Exception)
@@ -2031,13 +2031,14 @@ public class MaaProcessor
             return false;
         }
     }
+
     private void AddPostTasksAsync(bool onlyStart, bool checkUpdate, CancellationToken token)
     {
         if (!onlyStart)
         {
             TaskQueue.Enqueue(CreateMFATask("结束脚本", async () =>
             {
-                await TaskManager.RunTaskAsync(() => RunScript("Post-script"), token);
+                await TaskManager.RunTaskAsync(async () => await RunScript("Post-script"), token);
             }));
         }
         if (checkUpdate)
