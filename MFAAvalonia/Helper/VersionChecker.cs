@@ -1242,7 +1242,7 @@ public static class VersionChecker
         }
         if (string.IsNullOrWhiteSpace(cdk) && !onlyCheck)
         {
-            throw new Exception("MirrorCdkInvalid".ToLocalization());
+            throw new Exception("MirrorCdkEmpty".ToLocalization());
         }
         var cdkD = onlyCheck ? string.Empty : $"cdk={cdk}&";
         var multiplatform = MaaProcessor.Interface?.Multiplatform == true;

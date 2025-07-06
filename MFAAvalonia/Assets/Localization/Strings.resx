@@ -1131,4 +1131,7 @@
     <data name="StopTaskBeforeExportLog" xml:space="preserve">
         <value>导出日志前请停止任务</value>
     </data>
+    <data name="MirrorCdkEmpty" xml:space="preserve">
+        <value>CDK为空，请到设置中的更新设置中填写CDK或切换更新源至GitHub</value>
+    </data>
 </root>

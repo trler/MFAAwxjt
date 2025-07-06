@@ -1124,4 +1124,7 @@
     <data name="StopTaskBeforeExportLog" xml:space="preserve">
         <value>Please stop the task before exporting logs</value>
     </data>
+    <data name="MirrorCdkEmpty" xml:space="preserve">
+        <value>CDK is empty. Please fill in the CDK in the update settings of the configuration or switch the update source to GitHub.</value>
+    </data>
 </root>
