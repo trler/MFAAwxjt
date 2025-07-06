@@ -20,6 +20,7 @@ using SukiUI.Dialogs;
 using SukiUI.Toasts;
 using System;
 using System.Linq;
+using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -241,6 +242,12 @@ public partial class App : Application
         if (ex is HookException)
         {
             errorMessage = "macOS中的全局快捷键Hook异常，可能是由于权限不足或系统限制导致的";
+            return true;
+        }
+
+        if (ex is SocketException)
+        {
+            errorMessage = "代理设置的SSL验证错误";
             return true;
         }
 
