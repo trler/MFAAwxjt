@@ -1813,7 +1813,7 @@ public class MaaProcessor
         //
         // var tasks = JsonConvert.DeserializeObject<Dictionary<string, MaaNode>>(json, settings);
         // tasks = tasks.MergeMaaNodes(taskModels);
-        Console.WriteLine(taskParams);
+
         return new NodeAndParam
         {
             Name = task.InterfaceItem?.Name,

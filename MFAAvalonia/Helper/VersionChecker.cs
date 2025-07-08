@@ -1729,145 +1729,99 @@ public static class VersionChecker
 
     public static HttpClient CreateHttpClientWithProxy()
     {
-        // 检查是否禁用SSL
         bool disableSSL = File.Exists(Path.Combine(AppContext.BaseDirectory, "NO_SSL"));
         LoggerHelper.Info($"SSL验证状态: {(disableSSL ? "已禁用" : "已启用")}");
 
-        // 获取应用内代理设置
-        var appProxyAddress = Instances.VersionUpdateSettingsUserControlModel.ProxyAddress;
-        var appProxyType = Instances.VersionUpdateSettingsUserControlModel.ProxyType;
+        var _proxyAddress = Instances.VersionUpdateSettingsUserControlModel.ProxyAddress;
         NetworkCredential? credentials = null;
 
-        // 检测系统代理 (新增)
-        WebProxy systemProxy = null;
+        if (string.IsNullOrWhiteSpace(_proxyAddress))
+            return new HttpClient();
+
         try
         {
-            // 获取系统默认代理
-            systemProxy = (WebProxy)WebRequest.GetSystemWebProxy();
-            if (systemProxy != null && !string.IsNullOrWhiteSpace(systemProxy.Address?.AbsoluteUri))
+            var userHostParts = _proxyAddress.Split('@');
+            string endpointPart;
+            if (userHostParts.Length == 2)
             {
-                LoggerHelper.Info($"检测到系统代理: {systemProxy.Address}");
+
+                var credentialsPart = userHostParts[0];
+                endpointPart = userHostParts[1];
+                var creds = credentialsPart.Split(':');
+                if (creds.Length != 2)
+                    throw new FormatException("认证信息格式错误，应为 '<username>:<password>'");
+                credentials = new NetworkCredential(creds[0], creds[1]);
+            }
+            else if (userHostParts.Length == 1)
+            {
+                endpointPart = userHostParts[0];
+            }
+            else
+            {
+                throw new FormatException("代理地址格式错误，应为 '[<username>:<password>@]<host>:<port>'");
+            }
+            var hostParts = endpointPart.Split(':');
+            if (hostParts.Length != 2)
+                throw new FormatException("主机部分格式错误，应为 '<host>:<port>'");
+
+            var handler = new HttpClientHandler
+            {
+                ServerCertificateCustomValidationCallback = (sender, cert, chain, errors) =>
+                {
+                    LoggerHelper.Info($"证书验证: {cert?.Subject ?? "null"}");
+                    LoggerHelper.Info($"证书错误类型: {errors}");
+
+                    if (chain != null)
+                    {
+                        foreach (var status in chain.ChainStatus)
+                        {
+                            LoggerHelper.Info($"证书链状态: {status.Status}, {status.StatusInformation}");
+                        }
+                    }
+
+                    if (errors == SslPolicyErrors.RemoteCertificateChainErrors)
+                    {
+                        bool onlyTimeError = (chain?.ChainStatus ?? []).All(s =>
+                            s.Status == X509ChainStatusFlags.NotTimeValid || s.Status == X509ChainStatusFlags.NoError);
+
+                        if (onlyTimeError)
+                        {
+                            LoggerHelper.Warning("证书时间无效，但已放行");
+                            return true;
+                        }
+                    }
+
+                    return errors == SslPolicyErrors.None;
+                },
+                UseCookies = false,
+                SslProtocols = SslProtocols.Tls12 | SslProtocols.Tls13,
+            };
+
+            switch (Instances.VersionUpdateSettingsUserControlModel.ProxyType)
+            {
+                case VersionUpdateSettingsUserControlModel.UpdateProxyType.Socks5:
+                    handler.Proxy = new WebProxy($"socks5://{_proxyAddress}", false, null, credentials);
+                    handler.UseProxy = true;
+                    return new HttpClient(handler)
+                    {
+                        Timeout = TimeSpan.FromSeconds(30),
+                        DefaultRequestVersion = HttpVersion.Version11
+                    };
+                default:
+                    handler.Proxy = new WebProxy($"http://{_proxyAddress}", false, null, credentials);
+                    handler.UseProxy = true;
+                    return new HttpClient(handler)
+                    {
+                        Timeout = TimeSpan.FromSeconds(30),
+                        DefaultRequestVersion = HttpVersion.Version11
+                    };
             }
         }
         catch (Exception ex)
         {
-            LoggerHelper.Warning($"系统代理检测失败: {ex.Message}");
+            LoggerHelper.Error($"代理初始化失败: {ex.Message}");
+            return new HttpClient();
         }
-
-        // 优先使用应用内代理，若无则检查系统代理
-        string effectiveProxyAddress = string.IsNullOrWhiteSpace(appProxyAddress)
-            ? (systemProxy?.Address?.AbsoluteUri ?? "")
-            : appProxyAddress;
-
-        // 判断是否需要使用代理
-        var useProxy = !string.IsNullOrWhiteSpace(effectiveProxyAddress);
-
-        var handler = new HttpClientHandler
-        {
-            // 优化SSL验证逻辑，启用时进行基本证书检查
-            ServerCertificateCustomValidationCallback = disableSSL
-                ? (_, _, _, _) => 
-                {
-                    LoggerHelper.Info("SSL验证已禁用");
-                    return true;
-                }
-                : (sender, cert, chain, errors) =>
-                {
-                    if (errors != SslPolicyErrors.None) {
-                        foreach (var status in chain.ChainStatus) {
-                            if (status.Status == X509ChainStatusFlags.NotTimeValid) {
-                                LoggerHelper.Warning("证书时间无效: " + status.StatusInformation);
-                                return true;
-                            }
-                        }
-                    }
-                    // 简单证书验证，可根据需求扩展
-                    bool isValid = errors == SslPolicyErrors.None;
-                    if (!isValid)
-                    {
-                        LoggerHelper.Warning($"SSL证书验证失败: {errors}");
-                        // 这里可以添加特定证书信任逻辑
-                    }
-                    return isValid;
-                },
-            UseCookies = false,
-            // 增加连接超时设置
-            SslProtocols = SslProtocols.Tls12 | SslProtocols.Tls11 | SslProtocols.Tls // 明确支持的SSL协议
-        };
-
-        if (useProxy)
-        {
-            try
-            {
-                // 解析代理地址 (支持应用内代理和系统代理)
-                string proxyToUse = appProxyAddress;
-                VersionUpdateSettingsUserControlModel.UpdateProxyType proxyTypeToUse = appProxyType;
-
-                // 如果使用系统代理，设置为HTTP代理
-                if (string.IsNullOrWhiteSpace(appProxyAddress) && systemProxy?.Address != null)
-                {
-                    proxyToUse = systemProxy.Address.AbsoluteUri;
-                    proxyTypeToUse = VersionUpdateSettingsUserControlModel.UpdateProxyType.Http;
-
-                    // 尝试获取系统代理认证信息 (新增)
-                    if (systemProxy.Credentials != null && systemProxy.Credentials is NetworkCredential sysCreds)
-                    {
-                        credentials = sysCreds;
-                        LoggerHelper.Info("使用系统代理认证信息");
-                    }
-                }
-
-                // 解析代理地址和认证信息
-                var userHostParts = proxyToUse.Split('@');
-                string endpointPart;
-
-                if (userHostParts.Length == 2)
-                {
-                    var credentialsPart = userHostParts[0];
-                    endpointPart = userHostParts[1];
-                    var creds = credentialsPart.Split(':');
-                    if (creds.Length == 2)
-                    {
-                        credentials = new NetworkCredential(creds[0], creds[1]);
-                    }
-                    else
-                    {
-                        throw new FormatException("认证信息格式错误，应为 '<username>:<password>'");
-                    }
-                }
-                else
-                {
-                    endpointPart = userHostParts[0];
-                }
-
-                var hostParts = endpointPart.Split(':');
-                if (hostParts.Length != 2)
-                    throw new FormatException("主机部分格式错误，应为 '<host>:<port>'");
-
-                // 配置代理
-                switch (proxyTypeToUse)
-                {
-                    case VersionUpdateSettingsUserControlModel.UpdateProxyType.Socks5:
-                        handler.Proxy = new WebProxy($"socks5://{proxyToUse}", false, null, credentials);
-                        break;
-                    default:
-                        handler.Proxy = new WebProxy($"http://{proxyToUse}", false, null, credentials);
-                        break;
-                }
-                handler.UseProxy = true;
-            }
-            catch (Exception ex)
-            {
-                LoggerHelper.Error($"代理配置失败: {ex.Message}");
-                handler.UseProxy = false;
-            }
-        }
-
-        return new HttpClient(handler)
-        {
-            Timeout = TimeSpan.FromSeconds(30),
-            DefaultRequestVersion = HttpVersion.Version11
-        };
     }
     /// <summary>
     /// 从URL中提取文件扩展名
