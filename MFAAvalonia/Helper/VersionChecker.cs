@@ -29,6 +29,7 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Security;
 using System.Security.Authentication;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -1772,6 +1773,14 @@ public static class VersionChecker
                 }
                 : (sender, cert, chain, errors) =>
                 {
+                    if (errors != SslPolicyErrors.None) {
+                        foreach (var status in chain.ChainStatus) {
+                            if (status.Status == X509ChainStatusFlags.NotTimeValid) {
+                                LoggerHelper.Warning("证书时间无效: " + status.StatusInformation);
+                                return true;
+                            }
+                        }
+                    }
                     // 简单证书验证，可根据需求扩展
                     bool isValid = errors == SslPolicyErrors.None;
                     if (!isValid)
