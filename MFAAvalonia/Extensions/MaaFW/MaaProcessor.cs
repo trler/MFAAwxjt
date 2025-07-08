@@ -747,12 +747,12 @@ public class MaaProcessor
                                     new MaaInterface.MaaInterfaceOptionCase
                                     {
                                         Name = "测试1",
-                                        PipelineOverride = new Dictionary<string, MaaNode>()
+                                        PipelineOverride = new Dictionary<string, JToken>()
                                     },
                                     new MaaInterface.MaaInterfaceOptionCase
                                     {
                                         Name = "测试2",
-                                        PipelineOverride = new Dictionary<string, MaaNode>()
+                                        PipelineOverride = new Dictionary<string, JToken>()
                                     }
                                 ]
                             }
@@ -1736,7 +1736,7 @@ public class MaaProcessor
     }
 
 
-    private void UpdateTaskDictionary(ref Dictionary<string, MaaNode> taskModels,
+    private void UpdateTaskDictionary(ref Dictionary<string, JToken> taskModels,
         List<MaaInterface.MaaInterfaceSelectOption>? options,
         List<MaaInterface.MaaInterfaceSelectAdvanced>? advanceds)
     {
@@ -1754,7 +1754,7 @@ public class MaaProcessor
                 {
                     var param = interfaceOption.Cases[selectOption.Index.Value].PipelineOverride;
                     //       Instance.NodeDictionary = Instance.NodeDictionary.MergeMaaNodes(param);
-                    taskModels = taskModels.MergeMaaNodes(param);
+                    taskModels = taskModels.MergeJTokens(param);
                 }
             }
         }
@@ -1765,15 +1765,15 @@ public class MaaProcessor
             {
                 if (!string.IsNullOrWhiteSpace(selectAdvanced.PipelineOverride) && selectAdvanced.PipelineOverride != "{}")
                 {
-                    var param = JsonConvert.DeserializeObject<Dictionary<string, MaaNode>>(selectAdvanced.PipelineOverride);
+                    var param = JsonConvert.DeserializeObject<Dictionary<string, JToken>>(selectAdvanced.PipelineOverride);
                     //       Instance.NodeDictionary = Instance.NodeDictionary.MergeMaaNodes(param);
-                    taskModels = taskModels.MergeMaaNodes(param);
+                    taskModels = taskModels.MergeJTokens(param);
                 }
             }
         }
     }
 
-    private string SerializeTaskParams(Dictionary<string, MaaNode> taskModels)
+    private string SerializeTaskParams(Dictionary<string, JToken> taskModels)
     {
         var settings = new JsonSerializerSettings
         {
@@ -1794,7 +1794,7 @@ public class MaaProcessor
 
     private NodeAndParam CreateNodeAndParam(DragItemViewModel task)
     {
-        var taskModels = JsonConvert.DeserializeObject<Dictionary<string, MaaNode>>(JsonConvert.SerializeObject(task.InterfaceItem?.PipelineOverride ?? new Dictionary<string, MaaNode>(), new JsonSerializerSettings()
+        var taskModels = JsonConvert.DeserializeObject<Dictionary<string, JToken>>(JsonConvert.SerializeObject(task.InterfaceItem?.PipelineOverride ?? new Dictionary<string, JToken>(), new JsonSerializerSettings()
         {
             Formatting = Formatting.Indented,
             NullValueHandling = NullValueHandling.Ignore,
@@ -1803,16 +1803,17 @@ public class MaaProcessor
         UpdateTaskDictionary(ref taskModels, task.InterfaceItem?.Option, task.InterfaceItem?.Advanced);
 
         var taskParams = SerializeTaskParams(taskModels);
-        var settings = new JsonSerializerSettings
-        {
-            Formatting = Formatting.Indented,
-            NullValueHandling = NullValueHandling.Ignore,
-            DefaultValueHandling = DefaultValueHandling.Ignore
-        };
+        // var settings = new JsonSerializerSettings
+        // {
+        //     Formatting = Formatting.Indented,
+        //     NullValueHandling = NullValueHandling.Ignore,
+        //     DefaultValueHandling = DefaultValueHandling.Ignore
+        // };
         // var json = JsonConvert.SerializeObject(Instance.BaseNodes, settings);
         //
         // var tasks = JsonConvert.DeserializeObject<Dictionary<string, MaaNode>>(json, settings);
         // tasks = tasks.MergeMaaNodes(taskModels);
+        Console.WriteLine(taskParams);
         return new NodeAndParam
         {
             Name = task.InterfaceItem?.Name,

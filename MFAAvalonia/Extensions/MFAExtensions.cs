@@ -2,6 +2,7 @@
 using MFAAvalonia.Extensions.MaaFW;
 using MFAAvalonia.Helper;
 using MFAAvalonia.ViewModels.Other;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -45,7 +46,52 @@ public static class MFAExtensions
                 )
             ?? new Dictionary<TKey, MaaNode>();
     }
+    public static Dictionary<TKey, JToken> MergeJTokens<TKey>(
+        this IEnumerable<KeyValuePair<TKey, JToken>>? taskModels,
+        IEnumerable<KeyValuePair<TKey, JToken>>? additionalModels) where TKey : notnull
+    {
 
+        if (additionalModels == null)
+            return taskModels?.ToDictionary() ?? new Dictionary<TKey, JToken>();
+        return taskModels?
+                .Concat(additionalModels)
+                .GroupBy(pair => pair.Key)
+                .ToDictionary(
+                    group => group.Key,
+                    group =>
+                    {
+                        var mergedModel = group.First().Value;
+                        foreach (var taskModel in group.Skip(1))
+                        {
+                            mergedModel.Merge(taskModel.Value);
+                        }
+                        return mergedModel;
+                    }
+                )
+            ?? new Dictionary<TKey, JToken>();
+    }
+    public static JToken Merge(this JToken target, JToken source)
+    {
+        if (target == null) return source;
+        if (source == null) return target;
+        
+        // 确保目标和源都是 JObject
+        if (target.Type != JTokenType.Object || source.Type != JTokenType.Object)
+            return target;
+            
+        var targetObj = (JObject)target;
+        var sourceObj = (JObject)source;
+        
+        // 遍历源对象的所有属性
+        foreach (var property in sourceObj.Properties())
+        {
+            // 直接替换或添加属性（不递归合并）
+            targetObj[property.Name] = property.Value.DeepClone();
+        }
+        
+        return target;
+    }
+    
     public static string FormatWith(this string format, params object[] args)
     {
         return string.Format(format, args);
