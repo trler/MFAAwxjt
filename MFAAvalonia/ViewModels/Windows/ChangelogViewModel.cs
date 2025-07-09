@@ -37,7 +37,7 @@ public partial class ChangelogViewModel : ViewModelBase
 
             if (File.Exists(mdPath))
             {
-                var content = File.ReadAllText(mdPath);
+                var content = File.ReadAllText(mdPath).Replace("`","\'");
                 viewModel.AnnouncementInfo = content;
             }
         }
@@ -78,7 +78,7 @@ public partial class ChangelogViewModel : ViewModelBase
 
             if (File.Exists(mdPath))
             {
-                var content = File.ReadAllText(mdPath);
+                var content = File.ReadAllText(mdPath).Replace("`","\'");
                 viewModel.AnnouncementInfo = content;
             }
         }

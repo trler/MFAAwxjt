@@ -12,5 +12,6 @@
                 <Setter Property="Foreground" Value="{DynamicResource SukiLowText}" />
             </Style.Setters>
         </Style>
+        
     </Style>
 </Styles>
