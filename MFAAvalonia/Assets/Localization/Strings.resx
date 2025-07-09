@@ -1134,4 +1134,7 @@
     <data name="MirrorCdkEmpty" xml:space="preserve">
         <value>CDK为空，请到设置中的更新设置中填写CDK或切换更新源至GitHub</value>
     </data>
+    <data name="ContinueRunningWhenError" xml:space="preserve">
+        <value>任务运行失败后是否继续运行其它任务</value>
+    </data>
 </root>

@@ -1127,4 +1127,7 @@
     <data name="MirrorCdkEmpty" xml:space="preserve">
         <value>CDK is empty. Please fill in the CDK in the update settings of the configuration or switch the update source to GitHub.</value>
     </data>
+    <data name="ContinueRunningWhenError" xml:space="preserve">
+        <value>Whether to continue running other tasks after a task fails</value>
+    </data>
 </root>

@@ -379,4 +379,8 @@ public static class LangKeys
 	public static readonly string AlphaVersion = "AlphaVersion";
 	public static readonly string UIUpdateChannel = "UIUpdateChannel";
 	public static readonly string ExportLog = "ExportLog";
+	public static readonly string Warning = "Warning";
+	public static readonly string StopTaskBeforeExportLog = "StopTaskBeforeExportLog";
+	public static readonly string MirrorCdkEmpty = "MirrorCdkEmpty";
+	public static readonly string ContinueRunningWhenError = "ContinueRunningWhenError";
 }

@@ -63,7 +63,8 @@ public static class ConfigurationKeys
     public const string ShowHitDraw = "show_hit_draw";
     public const string Prescript = "Prescript";
     public const string Postscript = "Post-script";
-
+    public const string ContinueRunningWhenError = "ContinueRunningWhenError";
+    
     #endregion
 
     #region 界面设置

@@ -1946,7 +1946,14 @@ public class MaaProcessor
         if (maa == null || task == null) return;
 
         var job = maa.AppendTask(task, param ?? "{}");
-        await TaskManager.RunTaskAsync((Action)(() => job.Wait().ThrowIfNot(MaaJobStatus.Succeeded)), token, (ex) => throw ex, catchException: true, shouldLog: false);
+        await TaskManager.RunTaskAsync((Action)(() =>
+        {
+            if (Instances
+                .GameSettingsUserControlModel.ContinueRunningWhenError)
+                job.Wait();
+            else
+                job.Wait().ThrowIfNot(MaaJobStatus.Succeeded);
+        }), token, (ex) => throw ex, catchException: true, shouldLog: false);
     }
 
     async private Task RunScript(string str = "Prescript")
