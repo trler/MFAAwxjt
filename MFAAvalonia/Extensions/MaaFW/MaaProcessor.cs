@@ -141,38 +141,52 @@ public class MaaProcessor
     }
     public static string FindPythonPath(string? program)
     {
-        // 仅在程序为 "python" 且运行在 Windows 系统上时进行处理
-        if (program != "python" || !RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        if (program != "python")
         {
             return program;
         }
+        
+        // 根据不同操作系统执行不同的查找逻辑
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        {
+            return FindPythonPathOnWindows(program);
+        }
+        else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+        {
+            return FindPythonPathOnMacOS(program);
+        }
+        else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+        {
+            return FindPythonPathOnLinux(program);
+        }
+        else
+        {
+            // 未知操作系统，尝试通用查找
+            return FindPythonPathGeneric(program);
+        }
+    }
 
-        // 检查 PATH 环境变量
+    private static string FindPythonPathOnWindows(string program)
+    {
+        // 先检查 PATH 环境变量
         var pathEnv = Environment.GetEnvironmentVariable("PATH");
-        if (string.IsNullOrEmpty(pathEnv))
+        if (!string.IsNullOrEmpty(pathEnv))
         {
-            return program;
-        }
-
-        // 分割 PATH 并查找 python.exe
-        var pathDirs = pathEnv.Split(Path.PathSeparator);
-        foreach (var dir in pathDirs)
-        {
-            try
+            foreach (var dir in pathEnv.Split(Path.PathSeparator))
             {
-                var pythonPath = Path.Combine(dir, "python.exe");
-                if (File.Exists(pythonPath))
+                try
                 {
-                    return pythonPath;
+                    var fullPath = Path.Combine(dir, $"{program}.exe");
+                    if (File.Exists(fullPath))
+                    {
+                        return fullPath;
+                    }
                 }
-            }
-            catch
-            {
-                // 忽略无效路径
+                catch { /* 忽略错误目录 */ }
             }
         }
 
-        // 尝试查找 Python 安装目录
+        // 尝试查找 Python 安装目录 (常见位置)
         var pythonDirs = new[]
         {
             Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Programs", "Python"),
@@ -185,29 +199,193 @@ public class MaaProcessor
             {
                 try
                 {
+                    // 优先选择版本号最高的目录
                     var pythonDir = Directory.GetDirectories(baseDir)
                         .OrderByDescending(d => d)
                         .FirstOrDefault();
 
                     if (pythonDir != null)
                     {
-                        var pythonPath = Path.Combine(pythonDir, "python.exe");
+                        var pythonPath = Path.Combine(pythonDir, $"{program}.exe");
                         if (File.Exists(pythonPath))
                         {
                             return pythonPath;
                         }
                     }
                 }
-                catch
-                {
-                    // 忽略错误
-                }
+                catch { /* 忽略错误 */ }
             }
         }
 
-        // 未找到，返回原程序名
-        return program;
+        // 尝试查找 Anaconda/Miniconda
+        var condaDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "anaconda3");
+        if (Directory.Exists(condaDir))
+        {
+            var condaPythonPath = Path.Combine(condaDir, $"{program}.exe");
+            if (File.Exists(condaPythonPath))
+            {
+                return condaPythonPath;
+            }
+        }
+
+        return program; // 未找到，返回原程序名
     }
+
+    private static string FindPythonPathOnMacOS(string program)
+    {
+        // 检查 PATH 环境变量
+        var pathEnv = Environment.GetEnvironmentVariable("PATH");
+        if (!string.IsNullOrEmpty(pathEnv))
+        {
+            foreach (var dir in pathEnv.Split(Path.PathSeparator))
+            {
+                try
+                {
+                    var fullPath = Path.Combine(dir, program);
+                    if (File.Exists(fullPath) && IsExecutable(fullPath))
+                    {
+                        return fullPath;
+                    }
+                }
+                catch { /* 忽略错误目录 */ }
+            }
+        }
+
+        // 检查 Homebrew 安装位置
+        var homebrewDir = "/usr/local/bin";
+        var homebrewPath = Path.Combine(homebrewDir, program);
+        if (File.Exists(homebrewPath) && IsExecutable(homebrewPath))
+        {
+            return homebrewPath;
+        }
+
+        // 检查 Python.org 安装位置
+        var pythonOrgDir = "/Library/Frameworks/Python.framework/Versions";
+        if (Directory.Exists(pythonOrgDir))
+        {
+            try
+            {
+                // 选择最新版本
+                var versions = Directory.GetDirectories(pythonOrgDir)
+                    .Select( Path.GetFileName)
+                    .Where(v => v.StartsWith("3")) // 优先选择 Python 3
+                    .OrderByDescending(v => new Version(v))
+                    .ToList();
+
+                foreach (var version in versions)
+                {
+                    var pythonPath = Path.Combine(pythonOrgDir, version, "bin", program);
+                    if (File.Exists(pythonPath) && IsExecutable(pythonPath))
+                    {
+                        return pythonPath;
+                    }
+                }
+            }
+            catch { /* 忽略错误 */ }
+        }
+
+        return program; // 未找到，返回原程序名
+    }
+
+    private static string FindPythonPathOnLinux(string program)
+    {
+        // 检查 PATH 环境变量
+        var pathEnv = Environment.GetEnvironmentVariable("PATH");
+        if (!string.IsNullOrEmpty(pathEnv))
+        {
+            foreach (var dir in pathEnv.Split(Path.PathSeparator))
+            {
+                try
+                {
+                    var fullPath = Path.Combine(dir, program);
+                    if (File.Exists(fullPath) && IsExecutable(fullPath))
+                    {
+                        return fullPath;
+                    }
+                }
+                catch { /* 忽略错误目录 */ }
+            }
+        }
+
+        // 检查常见的 Python 安装位置
+        var commonDirs = new[]
+        {
+            "/usr/bin",
+            "/usr/local/bin",
+            "/opt/python/bin"
+        };
+
+        foreach (var dir in commonDirs)
+        {
+            var fullPath = Path.Combine(dir, program);
+            if (File.Exists(fullPath) && IsExecutable(fullPath))
+            {
+                return fullPath;
+            }
+        }
+
+        return program; // 未找到，返回原程序名
+    }
+
+    private static string FindPythonPathGeneric(string program)
+    {
+        // 通用查找逻辑，适用于其他操作系统
+        var pathEnv = Environment.GetEnvironmentVariable("PATH");
+        if (!string.IsNullOrEmpty(pathEnv))
+        {
+            foreach (var dir in pathEnv.Split(Path.PathSeparator))
+            {
+                try
+                {
+                    var fullPath = Path.Combine(dir, program);
+                    if (File.Exists(fullPath))
+                    {
+                        return fullPath;
+                    }
+                }
+                catch { /* 忽略错误目录 */ }
+            }
+        }
+
+        return program; // 未找到，返回原程序名
+    }
+
+    // 检查文件是否具有可执行权限 (仅适用于 Unix-like 系统)
+    private static bool IsExecutable(string path)
+    {
+        try
+        {
+            // 在 Windows 上不需要检查可执行权限
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                return true;
+            }
+
+            // 使用 Linux/macOS 的 file 命令检查文件类型
+            using var process = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = "file",
+                Arguments = $"--brief --mime-type \"{path}\"",
+                RedirectStandardOutput = true,
+                UseShellExecute = false
+            });
+
+            if (process != null)
+            {
+                process.WaitForExit();
+                var output = process.StandardOutput.ReadToEnd().Trim();
+                return output.Contains("executable") || output.Contains("application/x-executable");
+            }
+
+            return false;
+        }
+        catch
+        {
+            // 如果检查失败，默认认为文件存在即可执行
+            return File.Exists(path);
+        }
+    }
+
     async private Task<MaaTasker?> InitializeMaaTasker(CancellationToken token) // 添加 async 和 token
     {
         AutoInitDictionary.Clear();
@@ -1813,7 +1991,7 @@ public class MaaProcessor
         //
         // var tasks = JsonConvert.DeserializeObject<Dictionary<string, MaaNode>>(json, settings);
         // tasks = tasks.MergeMaaNodes(taskModels);
-
+        Console.WriteLine(taskParams);
         return new NodeAndParam
         {
             Name = task.InterfaceItem?.Name,

@@ -46,6 +46,7 @@ public static class MFAExtensions
                 )
             ?? new Dictionary<TKey, MaaNode>();
     }
+    
     public static Dictionary<TKey, JToken> MergeJTokens<TKey>(
         this IEnumerable<KeyValuePair<TKey, JToken>>? taskModels,
         IEnumerable<KeyValuePair<TKey, JToken>>? additionalModels) where TKey : notnull
@@ -70,6 +71,7 @@ public static class MFAExtensions
                 )
             ?? new Dictionary<TKey, JToken>();
     }
+    
       public static JToken Merge(this JToken? target, JToken? source)
     {
         if (target == null) return source;
