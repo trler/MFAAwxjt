@@ -70,27 +70,47 @@ public static class MFAExtensions
                 )
             ?? new Dictionary<TKey, JToken>();
     }
-    public static JToken Merge(this JToken target, JToken source)
+    public static JToken Merge(this JToken? target, JToken? source)
     {
         if (target == null) return source;
         if (source == null) return target;
-        
-        // 确保目标和源都是 JObject
+
+        // 确保目标和源都是 JObject 类型
         if (target.Type != JTokenType.Object || source.Type != JTokenType.Object)
             return target;
-            
+
         var targetObj = (JObject)target;
         var sourceObj = (JObject)source;
-        
+
         // 遍历源对象的所有属性
         foreach (var property in sourceObj.Properties())
         {
-            // 直接替换或添加属性（不递归合并）
-            targetObj[property.Name] = property.Value.DeepClone();
+            string propName = property.Name;
+            var targetProp = targetObj.Property(propName)?.Value;
+            var sourceProp = property.Value;
+
+            // 特殊处理 "param" 属性，递归合并内部属性
+            if (propName == "param" && targetProp != null && targetProp.Type == JTokenType.Object &&
+                sourceProp != null && sourceProp.Type == JTokenType.Object)
+            {
+                // 递归合并 param 内部属性
+                targetObj[propName] = Merge(targetProp, sourceProp);
+            }
+            else if (propName == "param" && targetProp == null)
+            {
+                // 如果 target 中没有 param 属性，直接添加源的 param 属性
+                targetObj[propName] = sourceProp.DeepClone();
+            }
+            else
+            {
+                // 其他属性直接替换或添加
+                targetObj[propName] = sourceProp.DeepClone();
+            }
         }
-        
+
         return target;
     }
+
     
     public static string FormatWith(this string format, params object[] args)
     {
