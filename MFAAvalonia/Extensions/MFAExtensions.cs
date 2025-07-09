@@ -70,7 +70,7 @@ public static class MFAExtensions
                 )
             ?? new Dictionary<TKey, JToken>();
     }
-    public static JToken Merge(this JToken? target, JToken? source)
+      public static JToken Merge(this JToken? target, JToken? source)
     {
         if (target == null) return source;
         if (source == null) return target;
@@ -86,31 +86,89 @@ public static class MFAExtensions
         foreach (var property in sourceObj.Properties())
         {
             string propName = property.Name;
-            var targetProp = targetObj.Property(propName)?.Value;
-            var sourceProp = property.Value;
+            JToken? targetProp = targetObj.Property(propName)?.Value;
+            JToken sourceProp = property.Value;
 
-            // 特殊处理 "param" 属性，递归合并内部属性
-            if (propName == "param" && targetProp != null && targetProp.Type == JTokenType.Object &&
-                sourceProp != null && sourceProp.Type == JTokenType.Object)
+            // 处理 recognition 相关合并逻辑
+            if (propName == "recognition")
             {
-                // 递归合并 param 内部属性
-                targetObj[propName] = Merge(targetProp, sourceProp);
+                if (targetProp != null && targetProp.Type == JTokenType.Object &&
+                    sourceProp.Type == JTokenType.Object)
+                {
+                    JObject targetRecognition = (JObject)targetProp;
+                    JObject sourceRecognition = (JObject)sourceProp;
+
+                    // 覆盖 type 属性
+                    if (sourceRecognition.ContainsKey("type"))
+                    {
+                        targetRecognition["type"] = sourceRecognition["type"]?.DeepClone() ?? new JValue((string)null);
+                    }
+
+                    // 处理 recognition 内部的 param 属性，递归合并
+                    if (sourceRecognition.ContainsKey("param") && 
+                        targetRecognition.ContainsKey("param") && 
+                        targetRecognition["param"]?.Type == JTokenType.Object && 
+                        sourceRecognition["param"]?.Type == JTokenType.Object)
+                    {
+                        targetRecognition["param"] = Merge(targetRecognition["param"], sourceRecognition["param"]);
+                    }
+                    else if (sourceRecognition.ContainsKey("param") && targetRecognition["param"] == null)
+                    {
+                        targetRecognition["param"] = sourceRecognition["param"]?.DeepClone();
+                    }
+
+                    targetObj[propName] = targetRecognition;
+                }
+                else if (targetProp == null)
+                {
+                    targetObj[propName] = sourceProp.DeepClone();
+                }
+                continue;
             }
-            else if (propName == "param" && targetProp == null)
+
+            // 处理 action 相关合并逻辑
+            if (propName == "action")
             {
-                // 如果 target 中没有 param 属性，直接添加源的 param 属性
-                targetObj[propName] = sourceProp.DeepClone();
+                if (targetProp != null && targetProp.Type == JTokenType.Object &&
+                    sourceProp.Type == JTokenType.Object)
+                {
+                    JObject targetAction = (JObject)targetProp;
+                    JObject sourceAction = (JObject)sourceProp;
+
+                    // 覆盖 type 属性
+                    if (sourceAction.ContainsKey("type"))
+                    {
+                        targetAction["type"] = sourceAction["type"]?.DeepClone() ?? new JValue((string)null);
+                    }
+
+                    // 处理 action 内部的 param 属性，递归合并
+                    if (sourceAction.ContainsKey("param") && 
+                        targetAction.ContainsKey("param") && 
+                        targetAction["param"]?.Type == JTokenType.Object && 
+                        sourceAction["param"]?.Type == JTokenType.Object)
+                    {
+                        targetAction["param"] = Merge(targetAction["param"], sourceAction["param"]);
+                    }
+                    else if (sourceAction.ContainsKey("param") && targetAction["param"] == null)
+                    {
+                        targetAction["param"] = sourceAction["param"]?.DeepClone();
+                    }
+
+                    targetObj[propName] = targetAction;
+                }
+                else if (targetProp == null)
+                {
+                    targetObj[propName] = sourceProp.DeepClone();
+                }
+                continue;
             }
-            else
-            {
-                // 其他属性直接替换或添加
-                targetObj[propName] = sourceProp.DeepClone();
-            }
+
+            // 其他普通属性直接替换或添加
+            targetObj[propName] = sourceProp.DeepClone();
         }
 
         return target;
     }
-
     
     public static string FormatWith(this string format, params object[] args)
     {
