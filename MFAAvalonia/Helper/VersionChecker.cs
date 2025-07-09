@@ -1260,7 +1260,7 @@ public static class VersionChecker
         var channel = versionType.GetName();
         var multiplatformString = multiplatform ? $"os={os}&arch={arch}&" : "";
         var releaseUrl = isUI
-            ? $"https://mirrorchyan.com/api/resources/{resId}/latest?channel={channel}&current_version={version}&{cdkD}os={os}&arch={arch}"
+            ? $"https://mirrorchyan.com/api/resources/{resId}/latest?channel={channel}&current_version={version}&{cdkD}os={os}&arch={arch}&user_agent={userAgent}"
             : $"https://mirrorchyan.com/api/resources/{resId}/latest?channel={channel}&current_version={version}&{cdkD}{multiplatformString}user_agent={userAgent}";
         using var httpClient = CreateHttpClientWithProxy();
         httpClient.DefaultRequestHeaders.UserAgent.TryParseAdd("request");
