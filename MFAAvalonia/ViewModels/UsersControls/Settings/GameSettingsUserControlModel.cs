@@ -20,7 +20,7 @@ public partial class GameSettingsUserControlModel : ViewModelBase
 
     [ObservableProperty] private string _postScript = ConfigurationManager.Current.GetValue(ConfigurationKeys.Postscript, string.Empty);
 
-    [ObservableProperty] private bool _continueRunningWhenError = ConfigurationManager.Current.GetValue(ConfigurationKeys.ContinueRunningWhenError, false);
+    [ObservableProperty] private bool _continueRunningWhenError = ConfigurationManager.Current.GetValue(ConfigurationKeys.ContinueRunningWhenError, true);
 
     partial void OnEnableRecordingChanged(bool value)
     {
