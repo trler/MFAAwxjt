@@ -59,7 +59,7 @@ public partial class AnnouncementViewModel : ViewModelBase
 
             // 获取所有md文件，按最后修改时间排序（最新的在前）
             var mdFiles = Directory.GetFiles(announcementDir, "*.md")
-                .OrderByDescending(File.GetLastWriteTime)
+                .OrderBy(f => Path.GetFileName(f)[0])  // 按文件名的首字母升序排列
                 .ToList();
 
             foreach (var mdFile in mdFiles)
