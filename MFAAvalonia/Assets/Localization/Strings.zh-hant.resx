@@ -1130,4 +1130,7 @@
     <data name="ContinueRunningWhenError" xml:space="preserve">
         <value>任務執行失敗後是否繼續執行其他任務</value>
     </data>
+    <data name="CurrentOtherUpdatingTask" xml:space="preserve">
+        <value>目前存在其他正在執行的更新任務</value>
+    </data>
 </root>

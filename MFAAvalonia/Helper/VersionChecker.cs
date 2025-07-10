@@ -178,7 +178,13 @@ public static class VersionChecker
                     Instances.ToastManager.CreateToast().WithTitle("UpdateResource".ToLocalization())
                         .WithContent("ResourceOption".ToLocalization() + "NewVersionAvailableLatestVersion".ToLocalization() + latestVersion).Dismiss().After(TimeSpan.FromSeconds(6))
                         .WithActionButton("Later".ToLocalization(), _ => { }, true, SukiButtonStyles.Basic)
-                        .WithActionButton("Update".ToLocalization(), _ => UpdateResourceAsync(), true).Queue();
+                        .WithActionButton("Update".ToLocalization(), _ =>
+                        {
+                            if (!Instances.RootViewModel.IsUpdating)
+                                UpdateResourceAsync();
+                            else
+                                ToastHelper.Warn("Warning".ToLocalization(),"CurrentOtherUpdatingTask".ToLocalization());
+                        }, true).Queue();
                 });
                 DispatcherHelper.RunOnMainThread(ChangelogViewModel.CheckReleaseNote);
             }
@@ -221,7 +227,13 @@ public static class VersionChecker
                     Instances.ToastManager.CreateToast().WithTitle("SoftwareUpdate".ToLocalization())
                         .WithContent("MFA" + "NewVersionAvailableLatestVersion".ToLocalization() + latestVersion).Dismiss().After(TimeSpan.FromSeconds(6))
                         .WithActionButton("Later".ToLocalization(), _ => { }, true, SukiButtonStyles.Basic)
-                        .WithActionButton("Update".ToLocalization(), _ => UpdateMFAAsync(), true).Queue();
+                        .WithActionButton("Update".ToLocalization(), _ =>
+                        {
+                            if (!Instances.RootViewModel.IsUpdating)
+                                UpdateMFAAsync();
+                            else
+                                ToastHelper.Warn("Warning".ToLocalization(),"CurrentOtherUpdatingTask".ToLocalization());
+                        }, true).Queue();
                 });
             }
             else

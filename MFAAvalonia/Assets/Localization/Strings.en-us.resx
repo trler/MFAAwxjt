@@ -1130,4 +1130,7 @@
     <data name="ContinueRunningWhenError" xml:space="preserve">
         <value>Whether to continue running other tasks after a task fails</value>
     </data>
+    <data name="CurrentOtherUpdatingTask" xml:space="preserve">
+        <value>There are other ongoing update tasks currently</value>
+    </data>
 </root>
