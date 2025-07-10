@@ -81,7 +81,8 @@ public static class VersionChecker
 
     public static void CheckMFAVersionAsync() => TaskManager.RunTaskAsync(() => CheckForMFAUpdates(Instances.VersionUpdateSettingsUserControlModel.DownloadSourceIndex == 0));
     public static void CheckResourceVersionAsync() => TaskManager.RunTaskAsync(() => CheckForResourceUpdates(Instances.VersionUpdateSettingsUserControlModel.DownloadSourceIndex == 0));
-    public static void UpdateResourceAsync() => TaskManager.RunTaskAsync(() => UpdateResource(Instances.VersionUpdateSettingsUserControlModel.DownloadSourceIndex == 0));
+    public static void UpdateResourceAsync(string
+         currentVersion = "") => TaskManager.RunTaskAsync(() => UpdateResource(Instances.VersionUpdateSettingsUserControlModel.DownloadSourceIndex == 0,currentVersion:currentVersion));
     public static void UpdateMFAAsync() => TaskManager.RunTaskAsync(() => UpdateMFA(Instances.VersionUpdateSettingsUserControlModel.DownloadSourceIndex == 0));
 
     public static void UpdateMaaFwAsync() => TaskManager.RunTaskAsync(() => UpdateMaaFw());
@@ -254,7 +255,7 @@ public static class VersionChecker
         }
     }
 
-    public async static Task UpdateResource(bool isGithub = true, bool closeDialog = false, bool noDialog = false, Action action = null)
+    public async static Task UpdateResource(bool isGithub = true, bool closeDialog = false, bool noDialog = false, Action action = null,string currentVersion ="")
     {
         Instances.RootViewModel.SetUpdating(true);
         ProgressBar? progress = null;
@@ -280,7 +281,7 @@ public static class VersionChecker
         });
 
 
-        var localVersion = MaaProcessor.Interface?.Version ?? string.Empty;
+        var localVersion =string.IsNullOrWhiteSpace(currentVersion) ? MaaProcessor.Interface?.Version ?? string.Empty : currentVersion;
 
         if (string.IsNullOrWhiteSpace(localVersion))
         {
@@ -1370,7 +1371,8 @@ public static class VersionChecker
                 throw new Exception("MirrorUseLimitReached".ToLocalization());
             case 7004:
                 throw new Exception("MirrorCdkMismatch".ToLocalization());
-
+            case 7005:
+                throw new Exception("MirrorCDKBanned".ToLocalization());
             // 资源相关错误 (404)
             case 8001:
                 throw new Exception("CurrentResourcesNotSupportMirror".ToLocalization());
