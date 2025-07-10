@@ -82,7 +82,7 @@ public static class VersionChecker
     public static void CheckMFAVersionAsync() => TaskManager.RunTaskAsync(() => CheckForMFAUpdates(Instances.VersionUpdateSettingsUserControlModel.DownloadSourceIndex == 0));
     public static void CheckResourceVersionAsync() => TaskManager.RunTaskAsync(() => CheckForResourceUpdates(Instances.VersionUpdateSettingsUserControlModel.DownloadSourceIndex == 0));
     public static void UpdateResourceAsync(string
-         currentVersion = "") => TaskManager.RunTaskAsync(() => UpdateResource(Instances.VersionUpdateSettingsUserControlModel.DownloadSourceIndex == 0,currentVersion:currentVersion));
+        currentVersion = "") => TaskManager.RunTaskAsync(() => UpdateResource(Instances.VersionUpdateSettingsUserControlModel.DownloadSourceIndex == 0, currentVersion: currentVersion));
     public static void UpdateMFAAsync() => TaskManager.RunTaskAsync(() => UpdateMFA(Instances.VersionUpdateSettingsUserControlModel.DownloadSourceIndex == 0));
 
     public static void UpdateMaaFwAsync() => TaskManager.RunTaskAsync(() => UpdateMaaFw());
@@ -184,7 +184,7 @@ public static class VersionChecker
                             if (!Instances.RootViewModel.IsUpdating)
                                 UpdateResourceAsync();
                             else
-                                ToastHelper.Warn("Warning".ToLocalization(),"CurrentOtherUpdatingTask".ToLocalization());
+                                ToastHelper.Warn("Warning".ToLocalization(), "CurrentOtherUpdatingTask".ToLocalization());
                         }, true).Queue();
                 });
                 DispatcherHelper.RunOnMainThread(ChangelogViewModel.CheckReleaseNote);
@@ -233,7 +233,7 @@ public static class VersionChecker
                             if (!Instances.RootViewModel.IsUpdating)
                                 UpdateMFAAsync();
                             else
-                                ToastHelper.Warn("Warning".ToLocalization(),"CurrentOtherUpdatingTask".ToLocalization());
+                                ToastHelper.Warn("Warning".ToLocalization(), "CurrentOtherUpdatingTask".ToLocalization());
                         }, true).Queue();
                 });
             }
@@ -255,7 +255,7 @@ public static class VersionChecker
         }
     }
 
-    public async static Task UpdateResource(bool isGithub = true, bool closeDialog = false, bool noDialog = false, Action action = null,string currentVersion ="")
+    public async static Task UpdateResource(bool isGithub = true, bool closeDialog = false, bool noDialog = false, Action action = null, string currentVersion = "")
     {
         Instances.RootViewModel.SetUpdating(true);
         ProgressBar? progress = null;
@@ -281,7 +281,7 @@ public static class VersionChecker
         });
 
 
-        var localVersion =string.IsNullOrWhiteSpace(currentVersion) ? MaaProcessor.Interface?.Version ?? string.Empty : currentVersion;
+        var localVersion = string.IsNullOrWhiteSpace(currentVersion) ? MaaProcessor.Interface?.Version ?? string.Empty : currentVersion;
 
         if (string.IsNullOrWhiteSpace(localVersion))
         {
