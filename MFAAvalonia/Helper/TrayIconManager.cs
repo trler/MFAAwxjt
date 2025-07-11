@@ -141,9 +141,10 @@ public class TrayIconManager
 
     private static void App_exit(object sender, EventArgs e)
     {
-       if (Instances.RootView.ConfirmExit().Result != true)
+        if (Instances.RootView.ConfirmExit(() => LoggerHelper.Info("MFA Closed!")).Result != true)
             return;
-         Instances.ApplicationLifetime.Shutdown();
+        LoggerHelper.Info("MFA Closed!");
+        Instances.ApplicationLifetime.Shutdown();
     }
 
     private static void App_hide(object sender, EventArgs e) =>
