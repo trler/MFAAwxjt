@@ -75,7 +75,7 @@ public partial class AnnouncementViewModel : ViewModelBase
                         var item = new AnnouncementItem
                         {
                             Title = lines[0].Trim(),
-                            Content = lines[1].Replace("`","\'"),
+                            Content = lines[1],
                             FilePath = mdFile,
                             LastModified = File.GetLastWriteTime(mdFile)
                         };
