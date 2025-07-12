@@ -59,7 +59,7 @@ public static partial class Instances
     /// </summary>
     public static void ShutdownApplication()
     {
-        DispatcherHelper.RunOnMainThread(() => ApplicationLifetime.MainWindow?.Close());
+        DispatcherHelper.PostOnMainThread(() => ApplicationLifetime.Shutdown());
     }
 
     /// <summary>

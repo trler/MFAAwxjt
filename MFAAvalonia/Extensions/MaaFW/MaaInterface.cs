@@ -206,7 +206,7 @@ public partial class MaaInterface
     [JsonProperty("message")]
     public string? Message { get; set; }
 
-    [JsonProperty("url")]
+    [JsonProperty("url")]   
     public string? Url { get; set; }
 
     [JsonProperty("custom_title")]
