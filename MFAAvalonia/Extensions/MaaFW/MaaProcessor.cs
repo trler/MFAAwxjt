@@ -145,7 +145,7 @@ public class MaaProcessor
         {
             return program;
         }
-        
+
         // 根据不同操作系统执行不同的查找逻辑
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
         {
@@ -182,7 +182,10 @@ public class MaaProcessor
                         return fullPath;
                     }
                 }
-                catch { /* 忽略错误目录 */ }
+                catch
+                {
+                    /* 忽略错误目录 */
+                }
             }
         }
 
@@ -213,7 +216,10 @@ public class MaaProcessor
                         }
                     }
                 }
-                catch { /* 忽略错误 */ }
+                catch
+                {
+                    /* 忽略错误 */
+                }
             }
         }
 
@@ -247,7 +253,10 @@ public class MaaProcessor
                         return fullPath;
                     }
                 }
-                catch { /* 忽略错误目录 */ }
+                catch
+                {
+                    /* 忽略错误目录 */
+                }
             }
         }
 
@@ -267,7 +276,7 @@ public class MaaProcessor
             {
                 // 选择最新版本
                 var versions = Directory.GetDirectories(pythonOrgDir)
-                    .Select( Path.GetFileName)
+                    .Select(Path.GetFileName)
                     .Where(v => v.StartsWith("3")) // 优先选择 Python 3
                     .OrderByDescending(v => new Version(v))
                     .ToList();
@@ -281,7 +290,10 @@ public class MaaProcessor
                     }
                 }
             }
-            catch { /* 忽略错误 */ }
+            catch
+            {
+                /* 忽略错误 */
+            }
         }
 
         return program; // 未找到，返回原程序名
@@ -303,7 +315,10 @@ public class MaaProcessor
                         return fullPath;
                     }
                 }
-                catch { /* 忽略错误目录 */ }
+                catch
+                {
+                    /* 忽略错误目录 */
+                }
             }
         }
 
@@ -343,7 +358,10 @@ public class MaaProcessor
                         return fullPath;
                     }
                 }
-                catch { /* 忽略错误目录 */ }
+                catch
+                {
+                    /* 忽略错误目录 */
+                }
             }
         }
 
@@ -566,16 +584,15 @@ public class MaaProcessor
             tasker.Utility.SetOption_Recording(ConfigurationManager.Maa.GetValue(ConfigurationKeys.Recording, false));
             tasker.Utility.SetOption_SaveDraw(ConfigurationManager.Maa.GetValue(ConfigurationKeys.SaveDraw, false));
             tasker.Utility.SetOption_ShowHitDraw(ConfigurationManager.Maa.GetValue(ConfigurationKeys.ShowHitDraw, false));
-            tasker.Callback += (_, args) =>
+            tasker.Callback += (o, args) =>
             {
                 var jObject = JObject.Parse(args.Details);
-
+            
                 var name = jObject["name"]?.ToString() ?? string.Empty;
-
+            
                 if (args.Message.StartsWith(MaaMsg.Node.Action.Prefix) && jObject.ContainsKey("focus"))
                 {
-                    var maaNode = jObject.ToObject<MaaNode>();
-                    DisplayFocus(maaNode, args.Message);
+                    DisplayFocus(jObject, args.Message);
                 }
             };
 
@@ -621,11 +638,11 @@ public class MaaProcessor
 
     }
 
-    private void DisplayFocus(MaaNode taskModel, string message)
+    private void DisplayFocus(JObject taskModel, string message)
     {
-        if (taskModel.Focus == null)
+        if (taskModel["focus"] == null)
             return;
-        var jToken = JToken.FromObject(taskModel.Focus);
+        var jToken = JToken.FromObject(taskModel["focus"]);
         var focus = new Focus();
         if (jToken.Type == JTokenType.String)
             focus.Start = [jToken.Value<string>()];
