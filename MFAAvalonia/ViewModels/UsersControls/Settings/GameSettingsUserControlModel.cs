@@ -41,7 +41,7 @@ public partial class GameSettingsUserControlModel : ViewModelBase
     partial void OnShowHitDrawChanged(bool value)
     {
         ConfigurationManager.Maa.SetValue(ConfigurationKeys.ShowHitDraw, value);
-        MaaProcessor.Utility.SetOption_ShowHitDraw(value);
+        MaaProcessor.Utility.SetOption_DebugMode(value);
         Instances.RootViewModel.IsDebugMode = EnableSaveDraw || EnableRecording || ShowHitDraw;
         MaaProcessor.Instance.SetTasker();
     }

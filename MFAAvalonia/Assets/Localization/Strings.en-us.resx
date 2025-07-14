@@ -1142,4 +1142,25 @@
     <data name="MirrorCDKBanned" xml:space="preserve">
         <value>CDK has been banned</value>
     </data>
+    <data name="ScreenshotTest" xml:space="preserve">
+        <value>Screenshot Test</value>
+    </data>
+    <data name="ScreenshotPage" xml:space="preserve">
+        <value>Screenshot</value>
+    </data>
+    <data name="ScreenshotFailed" xml:space="preserve">
+        <value>Screenshot Failed</value>
+    </data>
+    <data name="DisplayAnnouncement" xml:space="preserve">
+        <value>Display Announcement</value>
+    </data>
+    <data name="ScreenshotEmpty" xml:space="preserve">
+        <value>The current screenshot is empty! Please click [Screenshot Test] to get a screenshot</value>
+    </data>
+    <data name="SaveScreenshot" xml:space="preserve">
+        <value>Save Screenshot</value>
+    </data>
+    <data name="AnnouncementEmpty" xml:space="preserve">
+        <value>The current announcement is empty</value>
+    </data>
 </root>

@@ -372,7 +372,7 @@ public static class VersionChecker
         if (!downloadStatus)
         {
             Dismiss(sukiToast);
-            ToastHelper.Warn("DownloadFailed".ToLocalization());
+            ToastHelper.Warn("Warning".ToLocalization(),"DownloadFailed".ToLocalization());
             Instances.RootViewModel.SetUpdating(false);
             return;
         }
@@ -385,7 +385,7 @@ public static class VersionChecker
         if (!File.Exists(tempZipFilePath))
         {
             Dismiss(sukiToast);
-            ToastHelper.Warn("DownloadFailed".ToLocalization());
+            ToastHelper.Warn("Warning".ToLocalization(),"DownloadFailed".ToLocalization());
             Instances.RootViewModel.SetUpdating(false);
             return;
         }
@@ -650,7 +650,7 @@ public static class VersionChecker
             if (!downloadStatus)
             {
                 Dismiss(sukiToast);
-                ToastHelper.Warn("DownloadFailed".ToLocalization());
+                ToastHelper.Warn("Warning".ToLocalization(),"DownloadFailed".ToLocalization());
                 Instances.RootViewModel.SetUpdating(false);
                 return;
             }
@@ -965,7 +965,7 @@ public static class VersionChecker
             if (!downloadStatus)
             {
                 Dismiss(sukiToast);
-                ToastHelper.Warn("DownloadFailed".ToLocalization());
+                ToastHelper.Warn("Warning".ToLocalization(),"DownloadFailed".ToLocalization());
                 Instances.RootViewModel.SetUpdating(false);
                 return;
             }

@@ -1,6 +1,10 @@
-﻿using Avalonia.Media;
+﻿using Avalonia;
+using Avalonia.Media;
+using Avalonia.Media.Imaging;
+using Avalonia.Platform;
 using Avalonia.Threading;
 using MaaFramework.Binding;
+using MaaFramework.Binding.Buffers;
 using MaaFramework.Binding.Notification;
 using MFAAvalonia.Configuration;
 using MFAAvalonia.Helper;
@@ -14,6 +18,8 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Drawing;
+using System.Drawing.Drawing2D;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -23,6 +29,12 @@ using System.Management;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+using Bitmap = Avalonia.Media.Imaging.Bitmap;
+using Brushes = Avalonia.Media.Brushes;
+using Color = System.Drawing.Color;
+using Pen = Avalonia.Media.Pen;
+using Point = System.Drawing.Point;
+using Size = Avalonia.Size;
 
 namespace MFAAvalonia.Extensions.MaaFW;
 #pragma warning  disable CS4014 // 由于此调用不会等待，因此在此调用完成之前将会继续执行当前方法.
@@ -126,6 +138,25 @@ public class MaaProcessor
     private bool _agentStarted;
     private Process? _agentProcess;
     private MFATask.MFATaskStatus Status = MFATask.MFATaskStatus.NOT_STARTED;
+
+    public Bitmap? GetBitmapImage()
+    {
+        TryConnectAsync(CancellationToken.None);
+        using var buffer = GetImage(MaaTasker?.Controller);
+        return buffer.ToBitmap();
+    }
+
+    public MaaImageBuffer GetImage(IMaaController? maaController)
+    {
+        var buffer = new MaaImageBuffer();
+        if (maaController == null)
+            return buffer;
+        var status = maaController.Screencap().Wait();
+        if (status != MaaJobStatus.Succeeded)
+            return buffer;
+        maaController.GetCachedImage(buffer);
+        return buffer;
+    }
 
     #endregion
 
@@ -403,6 +434,71 @@ public class MaaProcessor
             return File.Exists(path);
         }
     }
+    public static WriteableBitmap? DrawRectangleOnBitmap(Bitmap bitmap, int x, int y, int width, int height)
+    {
+        using (var context = new RenderTargetBitmap(
+                   new PixelSize(bitmap.PixelSize.Width, bitmap.PixelSize.Height),
+                   new Vector(96, 96)))
+        {
+            using (var drawingContext = context.CreateDrawingContext(false))
+            {
+                // 绘制原始位图
+                drawingContext.DrawImage(bitmap, new Rect(new Size(bitmap.PixelSize.Width, bitmap.PixelSize.Height)));
+
+                // 定义黄绿色画笔
+                var pen = new Pen(
+                    Brushes.YellowGreen,
+                    1,
+                    null,
+                    PenLineCap.Square,
+                    PenLineJoin.Miter);
+
+                // 绘制矩形框
+                drawingContext.DrawRectangle(
+                    null,
+                    pen,
+                    new Rect(x, y, width, height));
+            }
+
+            // 将绘制结果复制回原始位图
+            using (var writableBitmap = new WriteableBitmap(
+                       context.PixelSize,
+                       context.Dpi,
+                       PixelFormat.Bgra8888,
+                       AlphaFormat.Premul))
+            {
+                using (var buffer = writableBitmap.Lock())
+                {
+                    context.CopyPixels(
+                        new PixelRect(0, 0, context.PixelSize.Width, context.PixelSize.Height),
+                        buffer.Address,
+                        buffer.RowBytes * buffer.Size.Height,
+                        buffer.RowBytes);
+                }
+
+                // 转换回原始格式
+                using (var tempBitmap = new WriteableBitmap(
+                           bitmap.PixelSize,
+                           bitmap.Dpi,
+                           PixelFormat.Bgra8888,
+                           AlphaFormat.Premul))
+                {
+                    using (var tempBuffer = tempBitmap.Lock())
+                    {
+                        writableBitmap.CopyPixels(
+                            new PixelRect(0, 0, writableBitmap.PixelSize.Width, writableBitmap.PixelSize.Height),
+                            tempBuffer.Address,
+                            tempBuffer.RowBytes * tempBuffer.Size.Height,
+                            tempBuffer.RowBytes);
+                    }
+
+                    return writableBitmap;
+
+                }
+            }
+        }
+        return null;
+    }
 
     async private Task<MaaTasker?> InitializeMaaTasker(CancellationToken token) // 添加 async 和 token
     {
@@ -583,13 +679,63 @@ public class MaaProcessor
             Instances.TaskQueueViewModel.SetConnected(true);
             tasker.Utility.SetOption_Recording(ConfigurationManager.Maa.GetValue(ConfigurationKeys.Recording, false));
             tasker.Utility.SetOption_SaveDraw(ConfigurationManager.Maa.GetValue(ConfigurationKeys.SaveDraw, false));
-            tasker.Utility.SetOption_ShowHitDraw(ConfigurationManager.Maa.GetValue(ConfigurationKeys.ShowHitDraw, false));
+            tasker.Utility.SetOption_DebugMode(ConfigurationManager.Maa.GetValue(ConfigurationKeys.ShowHitDraw, false));
             tasker.Callback += (o, args) =>
             {
                 var jObject = JObject.Parse(args.Details);
-            
+
                 var name = jObject["name"]?.ToString() ?? string.Empty;
-            
+
+                if ((args.Message.StartsWith(MaaMsg.Node.Action.Succeeded) || args.Message.StartsWith(MaaMsg.Node.Action.Failed)) && o is MaaTasker tasker)
+                {
+                    Console.WriteLine(jObject);
+                    if (jObject["node_id"] != null)
+                    {
+                        var nodeId = Convert.ToInt64(jObject["node_id"]?.ToString() ?? string.Empty);
+                        Console.WriteLine(nodeId);
+                        if (nodeId > 0)
+                        {
+                            tasker.GetNodeDetail(nodeId, out _, out var recognitionId, out _);
+                            var rect = new MaaRectBuffer();
+                            var imageBuffer = new MaaImageBuffer();
+                            tasker.GetRecognitionDetail(recognitionId, out string node,
+                                out var algorithm,
+                                out var hit,
+                                rect,
+                                out var detailJson,
+                                imageBuffer, new MaaImageListBuffer());
+                            var bitmap = imageBuffer.ToBitmap();
+                            if (hit && bitmap != null)
+                            {
+                                var db = bitmap.ToDrawingBitmap();
+                                using var g = Graphics.FromImage(db);
+
+                                g.SmoothingMode = SmoothingMode.AntiAlias;
+
+                                using var pen = new System.Drawing.Pen(Color.LightGreen, 1.5f);
+
+                                g.DrawRectangle(pen, rect.X, rect.Y, rect.Width, rect.Height);
+
+                                bitmap = db.ToAvaloniaBitmap();
+                            }
+
+                            DispatcherHelper.PostOnMainThread(() =>
+                            {
+                                Instances.ScreenshotViewModel.ScreenshotImage = bitmap;
+                                Instances.ScreenshotViewModel.TaskName = name;
+                            });
+                        }
+
+                    }
+                    // if (jObject["task_id"] != null)
+                    // {
+                    //     var taskId = Convert.ToInt64(jObject["task_id"]?.ToString() ?? string.Empty);
+                    //     Console.WriteLine(taskId);
+                    //     tasker.GetTaskDetail(taskId, out var nodeName, out var recognitionId, out var actionCompleted);
+                    // }
+
+                }
+
                 if (args.Message.StartsWith(MaaMsg.Node.Action.Prefix) && jObject.ContainsKey("focus"))
                 {
                     DisplayFocus(jObject, args.Message);
@@ -2043,19 +2189,21 @@ public class MaaProcessor
         await MeasureExecutionTimeAsync(async () => await TaskManager.RunTaskAsync(() => MaaTasker?.Controller.Screencap().Wait(), token));
     }
 
-    async private Task HandleDeviceConnectionAsync(CancellationToken token)
+    async private Task HandleDeviceConnectionAsync(CancellationToken token, bool showMessage = true)
     {
         var controllerType = Instances.TaskQueueViewModel.CurrentController;
         var isAdb = controllerType == MaaControllerTypes.Adb;
-
-        RootView.AddLogByKey("ConnectingTo", null, true, isAdb ? "Emulator" : "Window");
+        if (showMessage)
+            RootView.AddLogByKey("ConnectingTo", null, true, isAdb ? "Emulator" : "Window");
+        else
+            ToastHelper.Info("Tip".ToLocalization(),"ConnectingTo".ToLocalizationFormatted(true, isAdb ? "Emulator" : "Window"));
         if (Instances.TaskQueueViewModel.CurrentDevice == null)
             Instances.TaskQueueViewModel.TryReadAdbDeviceFromConfig(false, true);
         var connected = await TryConnectAsync(token);
 
         if (!connected && isAdb)
         {
-            connected = await HandleAdbConnectionAsync(token);
+            connected = await HandleAdbConnectionAsync(token, showMessage);
         }
 
         if (!connected)
@@ -2067,15 +2215,16 @@ public class MaaProcessor
         Instances.TaskQueueViewModel.SetConnected(true);
     }
 
-    async private Task<bool> HandleAdbConnectionAsync(CancellationToken token)
+    async private Task<bool> HandleAdbConnectionAsync(CancellationToken token, bool showMessage = true)
     {
         bool connected = false;
         var retrySteps = new List<Func<CancellationToken, Task<bool>>>
         {
-            async t => await RetryConnectionAsync(t, StartSoftware, "TryToStartEmulator", Instances.ConnectSettingsUserControlModel.RetryOnDisconnected, () => Instances.TaskQueueViewModel.TryReadAdbDeviceFromConfig(false, true)),
-            async t => await RetryConnectionAsync(t, ReconnectByAdb, "TryToReconnectByAdb"),
-            async t => await RetryConnectionAsync(t, RestartAdb, "RestartAdb", Instances.ConnectSettingsUserControlModel.AllowAdbRestart),
-            async t => await RetryConnectionAsync(t, HardRestartAdb, "HardRestartAdb", Instances.ConnectSettingsUserControlModel.AllowAdbHardRestart)
+            async t => await RetryConnectionAsync(t, showMessage, StartSoftware, "TryToStartEmulator", Instances.ConnectSettingsUserControlModel.RetryOnDisconnected,
+                () => Instances.TaskQueueViewModel.TryReadAdbDeviceFromConfig(false, true)),
+            async t => await RetryConnectionAsync(t, showMessage, ReconnectByAdb, "TryToReconnectByAdb"),
+            async t => await RetryConnectionAsync(t, showMessage, RestartAdb, "RestartAdb", Instances.ConnectSettingsUserControlModel.AllowAdbRestart),
+            async t => await RetryConnectionAsync(t, showMessage, HardRestartAdb, "HardRestartAdb", Instances.ConnectSettingsUserControlModel.AllowAdbHardRestart)
         };
 
         foreach (var step in retrySteps)
@@ -2088,11 +2237,14 @@ public class MaaProcessor
         return connected;
     }
 
-    async private Task<bool> RetryConnectionAsync(CancellationToken token, Func<Task> action, string logKey, bool enable = true, Action? other = null)
+    async private Task<bool> RetryConnectionAsync(CancellationToken token, bool showMessage, Func<Task> action, string logKey, bool enable = true, Action? other = null)
     {
         if (!enable) return false;
         token.ThrowIfCancellationRequested();
-        RootView.AddLog("ConnectFailed".ToLocalization() + "\n" + logKey.ToLocalization());
+        if (showMessage)
+            RootView.AddLog("ConnectFailed".ToLocalization() + "\n" + logKey.ToLocalization());
+        else
+            ToastHelper.Info("ConnectFailed".ToLocalization(), logKey.ToLocalization());
         await action();
         if (token.IsCancellationRequested)
         {

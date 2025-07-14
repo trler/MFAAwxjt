@@ -96,7 +96,8 @@ public partial class App : Application
             .AddView<TaskQueueView, TaskQueueViewModel>(services)
             .AddView<ResourcesView, ResourcesViewModel>(services)
             .AddView<SettingsView, SettingsViewModel>(services)
-
+            .AddView<ScreenshotView, ScreenshotViewModel>(services)
+            
             // Add additional views
             .AddView<AddTaskDialogView, AddTaskDialogViewModel>(services)
             .AddView<AdbEditorDialogView, AdbEditorDialogViewModel>(services)

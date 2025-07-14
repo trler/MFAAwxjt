@@ -1142,4 +1142,25 @@
     <data name="MirrorCDKBanned" xml:space="preserve">
         <value>CDK 已被封禁</value>
     </data>
+    <data name="ScreenshotTest" xml:space="preserve">
+        <value>截圖測試</value>
+    </data>
+    <data name="ScreenshotPage" xml:space="preserve">
+        <value>截圖</value>
+    </data>
+    <data name="ScreenshotFailed" xml:space="preserve">
+        <value>截圖失败</value>
+    </data>
+    <data name="DisplayAnnouncement" xml:space="preserve">
+        <value>顯示公告</value>
+    </data>
+    <data name="ScreenshotEmpty" xml:space="preserve">
+        <value>目前截圖為空! 請點擊【截圖測試】獲取截圖</value>
+    </data>
+    <data name="SaveScreenshot" xml:space="preserve">
+        <value>儲存截圖</value>
+    </data>
+    <data name="AnnouncementEmpty" xml:space="preserve">
+        <value>目前公告為空</value>
+    </data>
 </root>

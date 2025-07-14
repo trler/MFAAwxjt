@@ -36,8 +36,8 @@
         <ApplicationRevision>0</ApplicationRevision>
         <ApplicationVersion>1.1.0</ApplicationVersion>
         <Version>1.1</Version>
-        <FileVersion>1.5.4</FileVersion>
-        <AssemblyVersion>1.5.4</AssemblyVersion>
+        <FileVersion>1.6.0</FileVersion>
+        <AssemblyVersion>1.6.0</AssemblyVersion>
         <InformationalVersion>0.0.1</InformationalVersion>
     </PropertyGroup>
 
@@ -132,6 +132,10 @@
 		  <AutoGen>True</AutoGen>
 		  <DesignTime>True</DesignTime>
 		  <DependentUpon>LangKeys.tt</DependentUpon>
+		</Compile>
+		<Compile Update="Views\Pages\ScreenshotView.axaml.cs">
+		  <DependentUpon>ScreenshotView.axaml</DependentUpon>
+		  <SubType>Code</SubType>
 		</Compile>
 	</ItemGroup>
     <ItemGroup>

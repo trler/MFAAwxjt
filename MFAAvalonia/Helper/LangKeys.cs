@@ -386,4 +386,11 @@ public static class LangKeys
 	public static readonly string CurrentOtherUpdatingTask = "CurrentOtherUpdatingTask";
 	public static readonly string RedownloadResourceFullPackage = "RedownloadResourceFullPackage";
 	public static readonly string RedownloadUiFullPackage = "RedownloadUiFullPackage";
+	public static readonly string MirrorCDKBanned = "MirrorCDKBanned";
+	public static readonly string ScreenshotTest = "ScreenshotTest";
+	public static readonly string ScreenshotPage = "ScreenshotPage";
+	public static readonly string ScreenshotFailed = "ScreenshotFailed";
+	public static readonly string DisplayAnnouncement = "DisplayAnnouncement";
+	public static readonly string ScreenshotEmpty = "ScreenshotEmpty";
+	public static readonly string SaveScreenshot = "SaveScreenshot";
 }
