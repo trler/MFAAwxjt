@@ -2,6 +2,7 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using MFAAvalonia.Configuration;
+using MFAAvalonia.Extensions;
 using MFAAvalonia.Helper;
 using MFAAvalonia.Helper.ValueType;
 using MFAAvalonia.Views.Windows;
@@ -100,10 +101,15 @@ public partial class AnnouncementViewModel : ViewModelBase
         }
     }
 
-    public static void CheckAnnouncement()
+    public static void CheckAnnouncement(bool forceShow = false)
     {
         var viewModel = new AnnouncementViewModel();
-        if (viewModel.DoNotRemindThisAnnouncementAgain || !viewModel.AnnouncementItems.Any())
+        if (forceShow)
+        {
+            if (!viewModel.AnnouncementItems.Any()) 
+                ToastHelper.Warn("Warning".ToLocalization(),"AnnouncementEmpty".ToLocalization());
+        }
+        else if (viewModel.DoNotRemindThisAnnouncementAgain || !viewModel.AnnouncementItems.Any())
             return;
 
         try
