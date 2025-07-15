@@ -2,9 +2,11 @@
 using Avalonia.Platform.Storage;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using MFAAvalonia.Configuration;
 using MFAAvalonia.Extensions;
 using MFAAvalonia.Extensions.MaaFW;
 using MFAAvalonia.Helper;
+using MFAAvalonia.Helper.ValueType;
 using System;
 using System.Drawing;
 using System.IO;
@@ -28,18 +30,48 @@ public partial class ScreenshotViewModel : ViewModelBase
         // }
         try
         {
-            TaskManager.RunTaskAsync(() =>
+            if (MaaProcessor.Instance.MaaTasker is not { IsInitialized: true })
             {
-                var bitmap = MaaProcessor.Instance.GetBitmapImage();
-                if (bitmap == null)
-                    ToastHelper.Warn("ScreenshotFailed".ToLocalization());
-
-                DispatcherHelper.PostOnMainThread((() =>
+                ToastHelper.Info("Tip".ToLocalization(), "ConnectingTo".ToLocalizationFormatted(true, Instances.TaskQueueViewModel.CurrentController == MaaControllerTypes.Adb ? "Emulator" : "Window"));
+                MaaProcessor.Instance.TaskQueue.Enqueue(new MFATask
                 {
-                    ScreenshotImage = bitmap;
-                    TaskName = string.Empty;
-                }));
-            });
+                    Name = "截图前启动",
+                    Type = MFATask.MFATaskType.MFA,
+                    Action = async () => await MaaProcessor.Instance.TestConnecting(),
+                });
+                MaaProcessor.Instance.TaskQueue.Enqueue(new MFATask
+                {
+                    Name = "截图任务",
+                    Type = MFATask.MFATaskType.MFA,
+                    Action = async () => await TaskManager.RunTaskAsync(() =>
+                    {
+                        var bitmap = MaaProcessor.Instance.GetBitmapImage(false);
+                        if (bitmap == null)
+                            ToastHelper.Warn("ScreenshotFailed".ToLocalization());
+
+                        DispatcherHelper.PostOnMainThread((() =>
+                        {
+                            ScreenshotImage = bitmap;
+                            TaskName = string.Empty;
+                        }));
+                    }),
+                });
+                MaaProcessor.Instance.Start(true, checkUpdate: false);
+
+            }
+            else
+                TaskManager.RunTaskAsync(() =>
+                {
+                    var bitmap = MaaProcessor.Instance.GetBitmapImage();
+                    if (bitmap == null)
+                        ToastHelper.Warn("ScreenshotFailed".ToLocalization());
+
+                    DispatcherHelper.PostOnMainThread((() =>
+                    {
+                        ScreenshotImage = bitmap;
+                        TaskName = string.Empty;
+                    }));
+                });
         }
         catch (Exception e)
         {
