@@ -816,7 +816,7 @@
         <value>下次不再提示</value>
     </data>
     <data name="ShowHitDraw" xml:space="preserve">
-        <value>顯示節點命中彈窗 (用於除錯)</value>
+        <value>顯示節點命中截圖（用於除錯）</value>
     </data>
     <data name="ShutDown" xml:space="preserve">
         <value>關機</value>

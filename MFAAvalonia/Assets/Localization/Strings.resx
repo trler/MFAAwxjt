@@ -823,7 +823,7 @@
         <value>下次不再提示</value>
     </data>
     <data name="ShowHitDraw" xml:space="preserve">
-        <value>显示节点命中弹窗 (用于调试)</value>
+        <value>显示节点命中截图 (用于调试)</value>
     </data>
     <data name="ShutDown" xml:space="preserve">
         <value>关机</value>
