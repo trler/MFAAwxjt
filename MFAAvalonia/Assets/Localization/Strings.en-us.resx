@@ -1163,4 +1163,7 @@
     <data name="AnnouncementEmpty" xml:space="preserve">
         <value>The current announcement is empty</value>
     </data>
+    <data name="Execute" xml:space="preserve">
+        <value>Execute</value>
+    </data>
 </root>

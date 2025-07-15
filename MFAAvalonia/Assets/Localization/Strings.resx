@@ -1171,4 +1171,7 @@
     <data name="AnnouncementEmpty" xml:space="preserve">
         <value>当前公告为空</value>
     </data>
+    <data name="Execute" xml:space="preserve">
+        <value>执行</value>
+    </data>
 </root>

@@ -393,4 +393,6 @@ public static class LangKeys
 	public static readonly string DisplayAnnouncement = "DisplayAnnouncement";
 	public static readonly string ScreenshotEmpty = "ScreenshotEmpty";
 	public static readonly string SaveScreenshot = "SaveScreenshot";
+	public static readonly string AnnouncementEmpty = "AnnouncementEmpty";
+	public static readonly string Execute = "Execute";
 }

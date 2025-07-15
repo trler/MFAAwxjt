@@ -139,9 +139,10 @@ public class MaaProcessor
     private Process? _agentProcess;
     private MFATask.MFATaskStatus Status = MFATask.MFATaskStatus.NOT_STARTED;
 
-    public Bitmap? GetBitmapImage()
+    public Bitmap? GetBitmapImage(bool test = true)
     {
-        TryConnectAsync(CancellationToken.None);
+        if (test)
+            TryConnectAsync(CancellationToken.None);
         using var buffer = GetImage(MaaTasker?.Controller);
         return buffer.ToBitmap();
     }
@@ -2017,6 +2018,16 @@ public class MaaProcessor
         }
     }
 
+    public void Start(List<DragItemViewModel> dragItemViewModels, bool onlyStart = false, bool checkUpdate = false)
+    {
+        if (InitializeData())
+        {
+            var tasks = dragItemViewModels;
+            ConnectToMAA();
+            StartTask(tasks, onlyStart, checkUpdate);
+        }
+    }
+
     public CancellationTokenSource? CancellationTokenSource { get; set; } = new();
 
     private DateTime? _startTime;
@@ -2196,7 +2207,7 @@ public class MaaProcessor
         if (showMessage)
             RootView.AddLogByKey("ConnectingTo", null, true, isAdb ? "Emulator" : "Window");
         else
-            ToastHelper.Info("Tip".ToLocalization(),"ConnectingTo".ToLocalizationFormatted(true, isAdb ? "Emulator" : "Window"));
+            ToastHelper.Info("Tip".ToLocalization(), "ConnectingTo".ToLocalizationFormatted(true, isAdb ? "Emulator" : "Window"));
         if (Instances.TaskQueueViewModel.CurrentDevice == null)
             Instances.TaskQueueViewModel.TryReadAdbDeviceFromConfig(false, true);
         var connected = await TryConnectAsync(token);
