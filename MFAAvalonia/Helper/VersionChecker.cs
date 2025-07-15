@@ -372,7 +372,7 @@ public static class VersionChecker
         if (!downloadStatus)
         {
             Dismiss(sukiToast);
-            ToastHelper.Warn("Warning".ToLocalization(),"DownloadFailed".ToLocalization());
+            ToastHelper.Warn("Warning".ToLocalization(), "DownloadFailed".ToLocalization());
             Instances.RootViewModel.SetUpdating(false);
             return;
         }
@@ -385,7 +385,7 @@ public static class VersionChecker
         if (!File.Exists(tempZipFilePath))
         {
             Dismiss(sukiToast);
-            ToastHelper.Warn("Warning".ToLocalization(),"DownloadFailed".ToLocalization());
+            ToastHelper.Warn("Warning".ToLocalization(), "DownloadFailed".ToLocalization());
             Instances.RootViewModel.SetUpdating(false);
             return;
         }
@@ -452,6 +452,12 @@ public static class VersionChecker
                                     && !Path.GetFileName(delPath).Contains("MFAAvalonia")
                                     && !Path.GetFileName(delPath).Contains(Process.GetCurrentProcess().MainModule?.ModuleName ?? string.Empty))
                                 {
+                                    if (Path.GetExtension(delPath).Equals(".md", StringComparison.OrdinalIgnoreCase) &&
+                                        delPath.Contains(AnnouncementViewModel.AnnouncementFolder))
+                                    {
+                                        GlobalConfiguration.SetValue(ConfigurationKeys.DoNotShowAnnouncementAgain, bool.FalseString);
+                                    }
+
                                     LoggerHelper.Info("Deleting file: " + delPath);
                                     File.Delete(delPath);
                                 }
@@ -520,25 +526,15 @@ public static class VersionChecker
         if (File.Exists(newInterfacePath))
         {
             var jsonContent = await File.ReadAllTextAsync(newInterfacePath);
-            var settings = new JsonSerializerSettings
-            {
-                Formatting = Formatting.Indented,
-                NullValueHandling = NullValueHandling.Ignore,
-                DefaultValueHandling = DefaultValueHandling.Ignore
-            };
-
-            settings.Converters.Add(new MaaInterfaceSelectOptionConverter(true));
-            settings.Converters.Add(new MaaInterfaceSelectAdvancedConverter(true));
-
-            var @interface = JsonConvert.DeserializeObject<MaaInterface>(jsonContent, settings);
+            
+            var @interface = JObject.Parse(jsonContent);
             if (@interface != null)
             {
-                @interface.Url = MaaProcessor.Interface?.Url;
-                @interface.Version = latestVersion;
+                @interface["url"] = MaaProcessor.Interface?.Url;
+                @interface["version"] = latestVersion;
             }
-            var updatedJsonContent = JsonConvert.SerializeObject(@interface, settings);
-
-            await File.WriteAllTextAsync(newInterfacePath, updatedJsonContent);
+            
+            await File.WriteAllTextAsync(newInterfacePath, @interface.ToString(Formatting.Indented));
         }
 
         SetProgress(progress, 100);
@@ -650,7 +646,7 @@ public static class VersionChecker
             if (!downloadStatus)
             {
                 Dismiss(sukiToast);
-                ToastHelper.Warn("Warning".ToLocalization(),"DownloadFailed".ToLocalization());
+                ToastHelper.Warn("Warning".ToLocalization(), "DownloadFailed".ToLocalization());
                 Instances.RootViewModel.SetUpdating(false);
                 return;
             }
@@ -965,7 +961,7 @@ public static class VersionChecker
             if (!downloadStatus)
             {
                 Dismiss(sukiToast);
-                ToastHelper.Warn("Warning".ToLocalization(),"DownloadFailed".ToLocalization());
+                ToastHelper.Warn("Warning".ToLocalization(), "DownloadFailed".ToLocalization());
                 Instances.RootViewModel.SetUpdating(false);
                 return;
             }
@@ -1676,9 +1672,22 @@ public static class VersionChecker
                 if (overwriteMFA
                     || !Path.GetFileName(tempPath).Contains("MFAUpdater") && !Path.GetFileName(tempPath).Contains("MFAAvalonia") && !Path.GetFileName(tempPath).Contains(Process.GetCurrentProcess().MainModule?.ModuleName ?? string.Empty))
                 {
-                    if (saveAnnouncement && tempPath.Contains(AnnouncementViewModel.AnnouncementFolder))
+                    if (saveAnnouncement && tempPath.Contains(AnnouncementViewModel.AnnouncementFolder) && Path.GetExtension(file.Name).Equals(".md", StringComparison.OrdinalIgnoreCase))
                     {
-                        GlobalConfiguration.SetValue(ConfigurationKeys.DoNotShowAnnouncementAgain, bool.FalseString);
+                        if (File.Exists(tempPath))
+                        {
+                            var sourceContent = File.ReadAllText(file.FullName);
+                            var destContent = File.ReadAllText(tempPath);
+
+                            if (!string.Equals(sourceContent, destContent, StringComparison.Ordinal))
+                            {
+                                GlobalConfiguration.SetValue(ConfigurationKeys.DoNotShowAnnouncementAgain, bool.FalseString);
+                            }
+                        }
+                        else
+                        {
+                            GlobalConfiguration.SetValue(ConfigurationKeys.DoNotShowAnnouncementAgain, bool.FalseString);
+                        }
                     }
                     LoggerHelper.Info("Copying file: " + tempPath);
                     file.CopyTo(tempPath, true);
@@ -1696,9 +1705,10 @@ public static class VersionChecker
         foreach (var subDir in dirs)
         {
             string tempPath = Path.Combine(destDirName, subDir.Name);
-            DirectoryMerge(subDir.FullName, tempPath);
+            DirectoryMerge(subDir.FullName, tempPath, overwriteMFA, saveAnnouncement);
         }
     }
+    
     private static void SaveRelease(JToken? releaseData, string from)
     {
         try
