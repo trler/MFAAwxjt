@@ -52,16 +52,16 @@ public static class LoggerHelper
         _logCache.Clear();
     }
 
-    public static void Info(object message)
+    public static void Info(object? message)
     {
         if (_logger == null)
         {
-            _logCache.Add((LogLevel.Info, message.ToString() ?? string.Empty));
+            _logCache.Add((LogLevel.Info, message?.ToString() ?? string.Empty));
             Console.WriteLine("[INFO]" + message);
         }
         else
         {
-            _logger.Information(message.ToString() ?? string.Empty);
+            _logger.Information(message?.ToString() ?? string.Empty);
             Console.WriteLine("[INFO]" + message);
         }
     }

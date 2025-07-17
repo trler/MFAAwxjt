@@ -1174,4 +1174,7 @@
     <data name="Execute" xml:space="preserve">
         <value>执行</value>
     </data>
+    <data name="StoppingInternalTask" xml:space="preserve">
+        <value>正在停止内部任务...</value>
+    </data>
 </root>

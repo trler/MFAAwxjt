@@ -7,6 +7,7 @@ using MaaFramework.Binding;
 using MaaFramework.Binding.Buffers;
 using MaaFramework.Binding.Notification;
 using MFAAvalonia.Configuration;
+using MFAAvalonia.Extensions.MaaFW.Custom;
 using MFAAvalonia.Helper;
 using MFAAvalonia.Helper.Converters;
 using MFAAvalonia.Helper.ValueType;
@@ -573,7 +574,7 @@ public class MaaProcessor
                 Toolkit = MaaProcessor.Toolkit,
                 DisposeOptions = DisposeOptions.None,
             };
-
+            // tasker.Resource.Register(new JieGardenAction());
             // 获取代理配置（假设Interface在UI线程中访问）
             var agentConfig = Interface?.Agent;
             if (agentConfig is { ChildExec: not null } && !_agentStarted)
@@ -2465,7 +2466,7 @@ public class MaaProcessor
 
             ExecuteStopCore(finished, () =>
             {
-                var stopResult = true;
+                var stopResult = MaaJobStatus.Succeeded;
                 if (status != MFATask.MFATaskStatus.FAILED)
                     stopResult = AbortCurrentTasker();
                 HandleStopResult(status, stopResult, onlyStart, action, isUpdateRelated);
@@ -2509,16 +2510,24 @@ public class MaaProcessor
         }, null, "停止任务");
     }
 
-    private bool AbortCurrentTasker()
+    private MaaJobStatus AbortCurrentTasker()
     {
-        return MaaTasker == null || MaaTasker.Stop().Wait() == MaaJobStatus.Succeeded;
+        if (MaaTasker == null)
+            return  MaaJobStatus.Succeeded;
+        var status = MaaTasker.Stop().Wait();
+        LoggerHelper.Info("Stopping tasker, status: " + status);
+        return status;
     }
 
-    private void HandleStopResult(MFATask.MFATaskStatus status, bool success, bool onlyStart, Action? action = null, bool isUpdateRelated = false)
+    private void HandleStopResult(MFATask.MFATaskStatus status, MaaJobStatus success, bool onlyStart, Action? action = null, bool isUpdateRelated = false)
     {
-        if (success)
+        if (success == MaaJobStatus.Succeeded)
         {
             DisplayTaskCompletionMessage(status, onlyStart, action);
+        }
+        else if (success == MaaJobStatus.Invalid)
+        {
+            RootView.AddLog("StoppingInternalTask".ToLocalization());
         }
         else
         {
