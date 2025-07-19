@@ -56,7 +56,7 @@ public static class VersionChecker
             AutoUpdateMFA = ConfigurationManager.Current.GetValue(ConfigurationKeys.EnableAutoUpdateMFA, false),
             CheckVersion = ConfigurationManager.Current.GetValue(ConfigurationKeys.EnableCheckVersion, true),
         };
-        
+
         if (config.AutoUpdateResource && !GetResourceVersion().Contains("debug", StringComparison.OrdinalIgnoreCase))
         {
             AddResourceUpdateTask(config.AutoUpdateMFA);
@@ -65,7 +65,7 @@ public static class VersionChecker
         {
             AddResourceCheckTask();
         }
-        
+
         if (config.AutoUpdateMFA)
         {
             AddMFAUpdateTask();
@@ -74,7 +74,7 @@ public static class VersionChecker
         {
             AddMFACheckTask();
         }
-        
+
         TaskManager.RunTaskAsync(async () => await ExecuteTasksAsync(),
             () => ToastNotification.Show("自动更新时发生错误！"), "启动检测");
     }
@@ -389,8 +389,7 @@ public static class VersionChecker
             Instances.RootViewModel.SetUpdating(false);
             return;
         }
-
-        await UniversalExtractor.ExtractAsync(tempZipFilePath, tempExtractDir, progress);
+        UniversalExtractor.Extract(tempZipFilePath, tempExtractDir);
         SetText(textBlock, "ApplyingUpdate".ToLocalization());
         var originPath = tempExtractDir;
         var interfacePath = Path.Combine(tempExtractDir, "interface.json");
@@ -452,8 +451,7 @@ public static class VersionChecker
                                     && !Path.GetFileName(delPath).Contains("MFAAvalonia")
                                     && !Path.GetFileName(delPath).Contains(Process.GetCurrentProcess().MainModule?.ModuleName ?? string.Empty))
                                 {
-                                    if (Path.GetExtension(delPath).Equals(".md", StringComparison.OrdinalIgnoreCase) &&
-                                        delPath.Contains(AnnouncementViewModel.AnnouncementFolder))
+                                    if (Path.GetExtension(delPath).Equals(".md", StringComparison.OrdinalIgnoreCase) && delPath.Contains(AnnouncementViewModel.AnnouncementFolder))
                                     {
                                         GlobalConfiguration.SetValue(ConfigurationKeys.DoNotShowAnnouncementAgain, bool.FalseString);
                                     }
@@ -526,14 +524,14 @@ public static class VersionChecker
         if (File.Exists(newInterfacePath))
         {
             var jsonContent = await File.ReadAllTextAsync(newInterfacePath);
-            
+
             var @interface = JObject.Parse(jsonContent);
             if (@interface != null)
             {
                 @interface["url"] = MaaProcessor.Interface?.Url;
                 @interface["version"] = latestVersion;
             }
-            
+
             await File.WriteAllTextAsync(newInterfacePath, @interface.ToString(Formatting.Indented));
         }
 
@@ -657,7 +655,7 @@ public static class VersionChecker
             if (Directory.Exists(extractDir))
                 Directory.Delete(extractDir, true);
             SetText(textBlock, "Extracting".ToLocalization());
-            await UniversalExtractor.ExtractAsync(tempZip, extractDir, progress);
+            UniversalExtractor.Extract(tempZip, extractDir);
 
             SetText(textBlock, "ApplyingUpdate".ToLocalization());
             // 执行安全更新
@@ -1183,7 +1181,7 @@ public static class VersionChecker
     {
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             return "win";
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX) || OperatingSystem.IsMacOS() || OperatingSystem.IsIOS())
             return "macos";
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
             return "linux";
@@ -1708,7 +1706,7 @@ public static class VersionChecker
             DirectoryMerge(subDir.FullName, tempPath, overwriteMFA, saveAnnouncement);
         }
     }
-    
+
     private static void SaveRelease(JToken? releaseData, string from)
     {
         try
