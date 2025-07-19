@@ -278,7 +278,17 @@ public static class MaaExtensions
         return job.QueryRecognitionDetail().IsHit();
     }
 
-    public static bool TemplateMatch(this IMaaContext maaContext, string template, IMaaImageBuffer imageBuffer, out RecognitionDetail? detail, double threshold = 0.8D, int x = 0, int y = 0, int w = 0, int h = 0, bool greenmask = false)
+    public static bool TemplateMatch(this IMaaContext maaContext,
+        string template,
+        IMaaImageBuffer imageBuffer,
+        out RecognitionDetail? detail,
+        double threshold = 0.8D,
+        int x = 0,
+        int y = 0,
+        int w = 0,
+        int h = 0,
+        bool greenmask = false,
+        string order = "Score")
     {
         detail = maaContext.RunRecognition(new MaaNode
         {
@@ -286,7 +296,7 @@ public static class MaaExtensions
             GreenMask = greenmask,
             Recognition = "TemplateMatch",
             Threshold = threshold,
-            OrderBy = "Score",
+            OrderBy = order,
             Roi = new[]
             {
                 x,
@@ -296,11 +306,25 @@ public static class MaaExtensions
             },
         }, imageBuffer);
         LoggerHelper.Info(detail?.Detail);
-        LoggerHelper.Info($"TemplateMatch: {template} ,Hit: {detail.IsHit()}");
+        LoggerHelper.Info($"TemplateMatch: {template} ,roi: [{x},{y},{w},{h}], Hit: {detail.IsHit()}");
         return detail.IsHit();
     }
 
-    public static bool ColorMatch(this IMaaContext maaContext, int ru, int gu, int bu, int rl, int gl, int bl, IMaaImageBuffer imageBuffer, out RecognitionDetail? detail, double threshold = 0.8D, int x = 0, int y = 0, int w = 0, int h = 0,int count = 1)
+    public static bool ColorMatch(this IMaaContext maaContext,
+        int ru,
+        int gu,
+        int bu,
+        int rl,
+        int gl,
+        int bl,
+        IMaaImageBuffer imageBuffer,
+        out RecognitionDetail? detail,
+        double threshold = 0.8D,
+        int x = 0,
+        int y = 0,
+        int w = 0,
+        int h = 0,
+        int count = 1)
     {
         detail = maaContext.RunRecognition(new MaaNode
         {
@@ -329,12 +353,12 @@ public static class MaaExtensions
             },
         }, imageBuffer);
         LoggerHelper.Info(detail?.Detail);
-        LoggerHelper.Info($"ColorMatch: upper:{string.Join(",",new List<int>
+        LoggerHelper.Info($"ColorMatch: upper:{string.Join(",", new List<int>
         {
             rl,
             gl,
             bl
-        })} lower::{string.Join(",",new List<int>
+        })} lower::{string.Join(",", new List<int>
     {
         ru,
         gu,
@@ -425,7 +449,8 @@ public static class MaaExtensions
         int sleepMilliseconds = 500,
         bool condition = true,
         int maxCount = 50,
-        Action? errorAction = null,bool outE = false
+        Action? errorAction = null,
+        bool outE = false
     )
     {
         int count = 0;

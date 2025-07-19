@@ -14,11 +14,11 @@ public static class ToastNotification
 {
     private static INotificationManager GetNotificationManager()
     {
-        
+
         if (OperatingSystem.IsWindows())
         {
             return new WindowsNotificationManager();
-        } 
+        }
         if (OperatingSystem.IsMacOS() || OperatingSystem.IsIOS())
         {
             return new AppleNotificationManager();
@@ -27,13 +27,16 @@ public static class ToastNotification
         {
             return new FreeDesktopNotificationManager();
         }
-    
+
         throw new PlatformNotSupportedException("Current system does not support any available notification manager");
     }
-    
+
     public static void Show(string title = "", string message = "")
     {
-        
+        if (OperatingSystem.IsMacOS() || OperatingSystem.IsIOS())
+        {
+            return;
+        }
         try
         {
             var notificationManager = GetNotificationManager();
@@ -51,5 +54,4 @@ public static class ToastNotification
             LoggerHelper.Error(e);
         }
     }
-    
 }

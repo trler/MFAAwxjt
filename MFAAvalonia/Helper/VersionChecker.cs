@@ -56,7 +56,7 @@ public static class VersionChecker
             AutoUpdateMFA = ConfigurationManager.Current.GetValue(ConfigurationKeys.EnableAutoUpdateMFA, false),
             CheckVersion = ConfigurationManager.Current.GetValue(ConfigurationKeys.EnableCheckVersion, true),
         };
-
+        
         if (config.AutoUpdateResource && !GetResourceVersion().Contains("debug", StringComparison.OrdinalIgnoreCase))
         {
             AddResourceUpdateTask(config.AutoUpdateMFA);
@@ -65,7 +65,7 @@ public static class VersionChecker
         {
             AddResourceCheckTask();
         }
-
+        
         if (config.AutoUpdateMFA)
         {
             AddMFAUpdateTask();
@@ -74,7 +74,7 @@ public static class VersionChecker
         {
             AddMFACheckTask();
         }
-
+        
         TaskManager.RunTaskAsync(async () => await ExecuteTasksAsync(),
             () => ToastNotification.Show("自动更新时发生错误！"), "启动检测");
     }

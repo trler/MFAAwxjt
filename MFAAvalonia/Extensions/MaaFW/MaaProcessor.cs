@@ -574,7 +574,7 @@ public class MaaProcessor
                 Toolkit = MaaProcessor.Toolkit,
                 DisposeOptions = DisposeOptions.None,
             };
-            // tasker.Resource.Register(new JieGardenAction());
+//            tasker.Resource.Register(new JieGardenAction());
             // 获取代理配置（假设Interface在UI线程中访问）
             var agentConfig = Interface?.Agent;
             if (agentConfig is { ChildExec: not null } && !_agentStarted)

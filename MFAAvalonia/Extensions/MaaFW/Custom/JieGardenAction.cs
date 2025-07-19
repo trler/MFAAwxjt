@@ -112,7 +112,7 @@ public class JieGardenAction : IMaaCustomAction
                 context.GetImage(ref image);
                 if (context.TemplateMatch("先手必胜.png", image, out detail, 0.9, 4, 162, 333, 321) && detail?.HitBox != null)
                 {
-                    Thread.Sleep(900);
+                    Thread.Sleep(200);
                     context.Click(detail.HitBox.X, detail.HitBox.Y);
                     return true;
                 }
@@ -149,7 +149,7 @@ public class JieGardenAction : IMaaCustomAction
                 }
                 return false;
             })).Until(context, sleepMilliseconds: 500);
-            Thread.Sleep(1500);
+            Thread.Sleep(1000);
             ((Func<bool>)(() =>
             {
                 context.GetImage(ref image);
@@ -166,7 +166,7 @@ public class JieGardenAction : IMaaCustomAction
                 return false;
             })).Until(context);
 
-            Thread.Sleep(1500);
+            Thread.Sleep(1000);
             for (int i = 0; i < 3; i++)
             {
                 ((Func<bool>)(() =>
@@ -240,14 +240,14 @@ public class JieGardenAction : IMaaCustomAction
                 }
                 context.Click(631, 610);
                 return false;
-            })).Until(context, maxCount: 340);
+            })).Until(context, maxCount: 50, errorAction: () => context.Click(1103, 528));
 
             int i1 = 0, res;
             var level = () =>
             {
                 if (i1++ == 0)
                 {
-                    res = Find(context, 280, 120, 220, 460, args.NodeName);
+                    res = Find(context, 280, 120, 220, 460, args.NodeName, true);
                 }
                 else
                 {
@@ -300,8 +300,7 @@ public class JieGardenAction : IMaaCustomAction
                         enteringTrader.Until(context);
                         if (SaveMoney(context, args))
                         {
-                            shouldContinue = false;
-                            break;
+                            throw new Exception("999源石锭!");
                         }
                         else
                         {
@@ -351,6 +350,11 @@ public class JieGardenAction : IMaaCustomAction
         var enter2 = () =>
         {
             var image = context.GetImage();
+
+            if (context.TemplateMatch("Roguelike@StageTraderInvestSystem.png", image, out detail, 0.75, 400, 172, 230, 150))
+            {
+                context.Click(detail.HitBox.X, detail.HitBox.Y);
+            }
             if (context.TemplateMatch("Roguelike@StageTraderInvestSystemEnter.png", image, out detail, 0.9, 460, 273, 420, 200))
             {
                 LoggerHelper.Info($"{detail.HitBox.X}, {detail.HitBox.Y}");
@@ -360,7 +364,7 @@ public class JieGardenAction : IMaaCustomAction
             return false;
         };
         enter2.Until(context, 200);
-        Thread.Sleep(1000);
+        Thread.Sleep(600);
         var imageBuffer = context.GetImage();
 
         var text = context.GetText(543, 334, 191, 65, imageBuffer);
@@ -371,6 +375,10 @@ public class JieGardenAction : IMaaCustomAction
         var saving = () =>
         {
             var image = context.GetImage();
+            if (context.TemplateMatch("Roguelike@StageTraderInvestSystemEnter.png", image, out detail, 0.9, 460, 273, 420, 200))
+            {
+                context.Click(640, 360);
+            }
             if (context.TemplateMatch("Roguelike@StageTraderInvestSystemError.png", image, out detail, 0.9, 454,
                     191,
                     355,
@@ -387,7 +395,7 @@ public class JieGardenAction : IMaaCustomAction
                 result = 2;
                 return true;
             }
-            if (context.TemplateMatch("fullOfMoney.png", image, out detail, 0.9, 728,
+            if (context.TemplateMatch("fullOfMoney.png", image, out detail, 0.8, 728,
                     49,
                     551,
                     475))
@@ -761,50 +769,68 @@ public class JieGardenAction : IMaaCustomAction
         select.Until(context);
     }
 
-    public int Find(IMaaContext context, int x, int y, int width, int height, string NodeName)
+    public int Find(IMaaContext context, int x, int y, int width, int height, string NodeName, bool spec = false)
     {
         int i = 0;
+        var selectFirst = false;
         var find = () =>
         {
             RecognitionDetail detail;
             var image = context.GetImage();
-            if (context.TemplateMatch("诡意行商.png", image, out detail, 0.8, x, y, width, height) && detail?.HitBox != null)
+            if (spec && context.TemplateMatch("不期而遇.png", image, out detail, 0.76, 740, 171, 221, 140) && detail?.HitBox != null)
+            {
+                selectFirst = true;
+            }
+            if (spec && context.TemplateMatch("得偿所愿.png", image, out detail, 0.76, 740, 171, 221, 140) && detail?.HitBox != null)
+            {
+                selectFirst = true;
+            }
+            if (!spec && context.TemplateMatch("诡意行商.png", image, out detail, 0.8, x, y, width, height) && detail?.HitBox != null)
             {
                 context.Click(detail.HitBox.X, detail.HitBox.Y);
                 RootView.AddLogByColor("关卡: 诡意行商", "ForestGreen");
                 i = 2;
                 return true;
             }
-            if (context.TemplateMatch("不期而遇.png", image, out detail, 0.87, x, y, width, height) && detail?.HitBox != null)
+            if (!spec && context.TemplateMatch("不期而遇.png", image, out detail, 0.87, x, y, width, height) && detail?.HitBox != null)
             {
-                if (context.ColorMatch(162, 170, 159, 0, 62, 77, image, out detail, 0.87, detail.HitBox.X, detail.HitBox.Y, detail.HitBox.Width, detail.HitBox.Height, 60) && detail?.HitBox != null)
+                if (context.ColorMatch(31, 170, 159, 1, 117, 108, image, out detail, 0.87, detail.HitBox.X, detail.HitBox.Y, detail.HitBox.Width, detail.HitBox.Height, 16) && detail?.HitBox != null)
                 {
                     context.Click(detail.HitBox.X, detail.HitBox.Y);
                     i = 0;
+                    Thread.Sleep(400);
+                    context.Click(detail.HitBox.X, detail.HitBox.Y);
                     return true;
                 }
             }
-            if (context.TemplateMatch("得偿所愿.png", image, out detail, 0.87, x, y, width, height) && detail?.HitBox != null)
+            if (!spec && context.TemplateMatch("得偿所愿.png", image, out detail, 0.87, x, y, width, height) && detail?.HitBox != null)
             {
-
-                context.Click(detail.HitBox.X, detail.HitBox.Y);
-                RootView.AddLogByColor("关卡: 得偿所愿", "ForestGreen");
-                i = 3;
-                return true;
-
+                if (context.ColorMatch(70, 168, 93, 0, 86, 56, image, out detail, 0.87, detail.HitBox.X, detail.HitBox.Y, detail.HitBox.Width, detail.HitBox.Height, 16) && detail?.HitBox != null)
+                {
+                    context.Click(detail.HitBox.X, detail.HitBox.Y);
+                    RootView.AddLogByColor("关卡: 得偿所愿", "ForestGreen");
+                    i = 3;
+                    Thread.Sleep(400);
+                    context.Click(detail.HitBox.X, detail.HitBox.Y);
+                    return true;
+                }
             }
-            if (context.TemplateMatch("作战.png", image, out detail, 0.8, x, y, width, height) && detail?.HitBox != null)
+            if (context.TemplateMatch("作战.png", image, out detail, 0.8, x, y, width, height, order: selectFirst ? "Vertical" : "Score") && detail?.HitBox != null)
             {
                 context.Click(detail.HitBox.X, detail.HitBox.Y);
                 RootView.AddLogByColor("关卡: 作战", "MediumPurple");
                 i = 1;
+                Thread.Sleep(400);
+                context.Click(detail.HitBox.X, detail.HitBox.Y);
                 return true;
             }
-            if (context.TemplateMatch("紧急作战.png", image, out detail, 0.85, x, y, width, height) && detail?.HitBox != null)
+            if (context.TemplateMatch("紧急作战.png", image, out detail, 0.85, x, y, width, height, order: selectFirst ? "Vertical" : "Score") && detail?.HitBox != null)
             {
                 context.Click(detail.HitBox.X, detail.HitBox.Y);
                 RootView.AddLogByColor("关卡: 紧急作战", "MediumPurple");
                 i = 1;
+                Thread.Sleep(400);
+                context.Click(detail.HitBox.X, detail.HitBox.Y);
                 return true;
             }
 
