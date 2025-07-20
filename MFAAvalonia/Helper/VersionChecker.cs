@@ -441,7 +441,7 @@ public static class VersionChecker
                 }
                 else
                 {
-                    await File.WriteAllTextAsync(AppContext.BaseDirectory, string.Concat(DateTime.Now, "\n", changes));
+                    await File.WriteAllTextAsync(Path.Combine(AppContext.BaseDirectory,"changes.json"), string.Concat(DateTime.Now, "\n", changes));
                 }
                 try
                 {
