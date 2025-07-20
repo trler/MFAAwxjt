@@ -431,9 +431,18 @@ public static class VersionChecker
         else
         {
             var changesPath = Path.Combine(tempExtractDir, "changes.json");
+
             if (File.Exists(changesPath))
             {
                 var changes = await File.ReadAllTextAsync(changesPath);
+                if (string.IsNullOrWhiteSpace(changes))
+                {
+                    LoggerHelper.Warning("Empty changes.json found");
+                }
+                else
+                {
+                    await File.WriteAllTextAsync(Path.Combine(AppContext.BaseDirectory, "logs"), changes);
+                }
                 try
                 {
                     var changesJson = JsonConvert.DeserializeObject<MirrorChangesJson>(changes);
@@ -497,7 +506,10 @@ public static class VersionChecker
                     LoggerHelper.Error(e);
                 }
             }
-
+            else
+            {
+                LoggerHelper.Error("No changes.json found");
+            }
         }
         var file = new FileInfo(interfacePath);
         if (file.Exists)
