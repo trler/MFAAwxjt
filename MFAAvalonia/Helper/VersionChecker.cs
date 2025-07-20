@@ -29,6 +29,7 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Security;
 using System.Security.Authentication;
+using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -161,10 +162,11 @@ public static class VersionChecker
             }
 
             string latestVersion = string.Empty;
+            string sha256 = string.Empty;
             if (isGithub)
-                GetLatestVersionAndDownloadUrlFromGithub(out var downloadUrl, out latestVersion, strings[0], strings[1], true, currentVersion: resourceVersion);
+                GetLatestVersionAndDownloadUrlFromGithub(out var downloadUrl, out latestVersion, out sha256, strings[0], strings[1], true, currentVersion: resourceVersion);
             else
-                GetDownloadUrlFromMirror(resourceVersion, GetResourceID(), CDK(), out _, out latestVersion, onlyCheck: true, currentVersion: resourceVersion);
+                GetDownloadUrlFromMirror(resourceVersion, GetResourceID(), CDK(), out _, out latestVersion, out sha256, onlyCheck: true, currentVersion: resourceVersion);
 
             if (string.IsNullOrWhiteSpace(latestVersion))
             {
@@ -214,10 +216,11 @@ public static class VersionChecker
             Instances.RootViewModel.SetUpdating(true);
             var localVersion = GetLocalVersion();
             string latestVersion = string.Empty;
+            string sha256 = string.Empty;
             if (isGithub)
-                GetLatestVersionAndDownloadUrlFromGithub(out var downloadUrl, out latestVersion);
+                GetLatestVersionAndDownloadUrlFromGithub(out var downloadUrl, out latestVersion, out sha256);
             else
-                GetDownloadUrlFromMirror(localVersion, "MFAAvalonia", CDK(), out _, out latestVersion, isUI: true, onlyCheck: true);
+                GetDownloadUrlFromMirror(localVersion, "MFAAvalonia", CDK(), out _, out latestVersion, out sha256, isUI: true, onlyCheck: true);
 
             if (IsNewVersionAvailable(latestVersion, GetMaxVersion()))
                 latestVersion = GetMaxVersion();
@@ -306,13 +309,13 @@ public static class VersionChecker
         }
         string latestVersion = string.Empty;
         string downloadUrl = string.Empty;
+        string sha256 = string.Empty;
         try
         {
             if (isGithub)
-                GetLatestVersionAndDownloadUrlFromGithub(out downloadUrl, out latestVersion, strings[0], strings[1], currentVersion: localVersion);
+                GetLatestVersionAndDownloadUrlFromGithub(out downloadUrl, out latestVersion, out sha256, strings[0], strings[1], currentVersion: localVersion);
             else
-                GetDownloadUrlFromMirror(localVersion, GetResourceID(), CDK(), out downloadUrl, out latestVersion, currentVersion: localVersion);
-
+                GetDownloadUrlFromMirror(localVersion, GetResourceID(), CDK(), out downloadUrl, out latestVersion, out sha256, currentVersion: localVersion);
         }
         catch (Exception ex)
         {
@@ -367,7 +370,7 @@ public static class VersionChecker
 
         SetText(textBlock, "Downloading".ToLocalization());
         SetProgress(progress, 0);
-        (var downloadStatus, tempZipFilePath) = await DownloadFileAsync(downloadUrl, tempZipFilePath, progress);
+        (var downloadStatus, tempZipFilePath) = await DownloadWithRetry(downloadUrl, tempZipFilePath, progress, 3);
         LoggerHelper.Info(tempZipFilePath);
         if (!downloadStatus)
         {
@@ -389,6 +392,25 @@ public static class VersionChecker
             Instances.RootViewModel.SetUpdating(false);
             return;
         }
+        SetText(textBlock, "Verifying".ToLocalization());
+        var sha256Verified = true;
+        if (string.IsNullOrWhiteSpace(sha256))
+        {
+            LoggerHelper.Warning("SHA256 is empty, skipping verification.");
+        }
+        else
+        {
+            sha256Verified = await VerifyFileSha256Async(tempZipFilePath, sha256);
+            LoggerHelper.Info("SHA256 verification result: " + sha256Verified);
+        }
+        if (!string.IsNullOrWhiteSpace(sha256) && !sha256Verified)
+        {
+            Dismiss(sukiToast);
+            ToastHelper.Warn("Warning".ToLocalization(), "HashVerificationFailed".ToLocalization());
+            Instances.RootViewModel.SetUpdating(false);
+            return;
+        }
+        SetText(textBlock, "Extracting".ToLocalization());
         UniversalExtractor.Extract(tempZipFilePath, tempExtractDir);
         SetText(textBlock, "ApplyingUpdate".ToLocalization());
         var originPath = tempExtractDir;
@@ -441,7 +463,9 @@ public static class VersionChecker
                 }
                 else
                 {
-                    await File.WriteAllTextAsync(Path.Combine(AppContext.BaseDirectory,"changes.json"), string.Concat(DateTime.Now, "\n", changes));
+                    var stringBuilder = new StringBuilder(DateTime.Now.ToString("yyyy-MM-dd"));
+                    stringBuilder.AppendLine(changes);
+                    await File.WriteAllTextAsync(Path.Combine(AppContext.BaseDirectory, "changes.json"), stringBuilder.ToString());
                 }
                 try
                 {
@@ -465,7 +489,7 @@ public static class VersionChecker
                                         GlobalConfiguration.SetValue(ConfigurationKeys.DoNotShowAnnouncementAgain, bool.FalseString);
                                     }
                                     if (Path.GetExtension(delPath).Equals(".dll", StringComparison.OrdinalIgnoreCase) && OperatingSystem.IsWindows()
-                                        || Path.GetExtension(delPath).Equals(".so", StringComparison.OrdinalIgnoreCase) && OperatingSystem.IsLinux()
+                                        || !Path.GetFileName(tempPath).Contains("minicap.so", StringComparison.OrdinalIgnoreCase) && Path.GetExtension(delPath).Equals(".so", StringComparison.OrdinalIgnoreCase) && OperatingSystem.IsLinux()
                                         || Path.GetExtension(delPath).Equals(".dylib", StringComparison.OrdinalIgnoreCase) && (OperatingSystem.IsMacOS() || OperatingSystem.IsIOS()))
                                     {
                                         LoggerHelper.Info("Skip file: " + delPath);
@@ -496,7 +520,7 @@ public static class VersionChecker
                                     && !Path.GetFileName(delPath).Contains(Process.GetCurrentProcess().MainModule?.ModuleName ?? string.Empty))
                                 {
                                     if (Path.GetExtension(delPath).Equals(".dll", StringComparison.OrdinalIgnoreCase) && OperatingSystem.IsWindows()
-                                        || Path.GetExtension(delPath).Equals(".so", StringComparison.OrdinalIgnoreCase) && OperatingSystem.IsLinux()
+                                        || !Path.GetFileName(tempPath).Contains("minicap.so", StringComparison.OrdinalIgnoreCase) && Path.GetExtension(delPath).Equals(".so", StringComparison.OrdinalIgnoreCase) && OperatingSystem.IsLinux()
                                         || Path.GetExtension(delPath).Equals(".dylib", StringComparison.OrdinalIgnoreCase) && (OperatingSystem.IsMacOS() || OperatingSystem.IsIOS()))
                                     {
                                         LoggerHelper.Info("Skip file: " + delPath);
@@ -622,14 +646,14 @@ public static class VersionChecker
             SetProgress(progress, 10);
 
             // 获取版本信息
-            string downloadUrl, latestVersion;
+            string downloadUrl, latestVersion, sha256;
             try
             {
 
                 if (isGithub)
-                    GetLatestVersionAndDownloadUrlFromGithub(out downloadUrl, out latestVersion);
+                    GetLatestVersionAndDownloadUrlFromGithub(out downloadUrl, out latestVersion, out sha256);
                 else
-                    GetDownloadUrlFromMirror(GetLocalVersion(), "MFAAvalonia", CDK(), out downloadUrl, out latestVersion, isUI: true);
+                    GetDownloadUrlFromMirror(GetLocalVersion(), "MFAAvalonia", CDK(), out downloadUrl, out latestVersion, out sha256, isUI: true);
             }
             catch (Exception ex)
             {
@@ -646,7 +670,7 @@ public static class VersionChecker
             {
                 latestVersion = GetMaxVersion();
                 if (isGithub)
-                    GetLatestVersionAndDownloadUrlFromGithub(out downloadUrl, out _, targetVersion: latestVersion);
+                    GetLatestVersionAndDownloadUrlFromGithub(out downloadUrl, out _, out sha256, targetVersion: latestVersion);
             }
 
             if (!IsNewVersionAvailable(latestVersion, GetLocalVersion()))
@@ -679,6 +703,24 @@ public static class VersionChecker
             var extractDir = Path.Combine(tempPath, $"mfa_{latestVersion}_extracted");
             if (Directory.Exists(extractDir))
                 Directory.Delete(extractDir, true);
+            SetText(textBlock, "Verifying".ToLocalization());
+            var sha256Verified = true;
+            if (string.IsNullOrWhiteSpace(sha256))
+            {
+                LoggerHelper.Warning("SHA256 is empty, skipping verification.");
+            }
+            else
+            {
+                sha256Verified = await VerifyFileSha256Async(tempZip, sha256);
+                LoggerHelper.Info("SHA256 verification result: " + sha256Verified);
+            }
+            if (!string.IsNullOrWhiteSpace(sha256) && !sha256Verified)
+            {
+                Dismiss(sukiToast);
+                ToastHelper.Warn("Warning".ToLocalization(), "HashVerificationFailed".ToLocalization());
+                Instances.RootViewModel.SetUpdating(false);
+                return;
+            }
             SetText(textBlock, "Extracting".ToLocalization());
             UniversalExtractor.Extract(tempZip, extractDir);
 
@@ -797,6 +839,7 @@ public static class VersionChecker
         }
         return (false, savePath);
     }
+
     private static string BuildArguments(string source, string target, string oldName, string newName)
     {
         var args = new List<string>
@@ -952,10 +995,10 @@ public static class VersionChecker
             SetProgress(progress, 10);
             var resId = "MaaFramework";
             var currentVersion = MaaProcessor.Utility.Version;
-            string downloadUrl = string.Empty, latestVersion = string.Empty;
+            string downloadUrl = string.Empty, latestVersion = string.Empty, sha256 = string.Empty;
             try
             {
-                GetDownloadUrlFromMirror(currentVersion, resId, CDK(), out downloadUrl, out latestVersion, "MFA", true);
+                GetDownloadUrlFromMirror(currentVersion, resId, CDK(), out downloadUrl, out latestVersion, out sha256, "MFA", true);
             }
             catch (Exception ex)
             {
@@ -1036,6 +1079,7 @@ public static class VersionChecker
 
     public static void GetLatestVersionAndDownloadUrlFromGithub(out string url,
         out string latestVersion,
+        out string sha256,
         string owner = "SweetSmellFox",
         string repo = "MFAAvalonia",
         bool onlyCheck = false,
@@ -1047,7 +1091,7 @@ public static class VersionChecker
             : Instances.VersionUpdateSettingsUserControlModel.ResourceUpdateChannelIndex.ToVersionType();
         url = string.Empty;
         latestVersion = string.Empty;
-
+        sha256 = string.Empty;
         if (string.IsNullOrWhiteSpace(owner) || string.IsNullOrWhiteSpace(repo))
             return;
 
@@ -1105,7 +1149,7 @@ public static class VersionChecker
                                 if (!onlyCheck && repo != "MFAAvalonia")
                                     SaveChangelog(tag, "body");
                             }
-                            url = GetDownloadUrlFromGitHubRelease(latestVersion, owner, repo);
+                            GetDownloadUrlFromGitHubRelease(latestVersion, owner, repo, out url, out sha256);
                             return;
                         }
                         if (string.IsNullOrEmpty(targetVersion) && !string.IsNullOrEmpty(latestVersion))
@@ -1117,7 +1161,7 @@ public static class VersionChecker
                                 if (!onlyCheck && repo != "MFAAvalonia")
                                     SaveChangelog(tag, "body");
                             }
-                            url = GetDownloadUrlFromGitHubRelease(latestVersion, owner, repo);
+                            GetDownloadUrlFromGitHubRelease(latestVersion, owner, repo, out url, out sha256);
                             return;
                         }
                     }
@@ -1141,13 +1185,26 @@ public static class VersionChecker
             page++;
         }
     }
+    private static string ExtractSha256FromDigest(string? digest)
+    {
+        if (string.IsNullOrEmpty(digest))
+            return string.Empty;
 
-    private static string GetDownloadUrlFromGitHubRelease(string version, string owner, string repo)
+        if (digest.StartsWith("sha256:", StringComparison.OrdinalIgnoreCase))
+        {
+            // 提取冒号后的部分
+            return digest.Substring(7);
+        }
+
+        return digest;
+    }
+    private static void GetDownloadUrlFromGitHubRelease(string version, string owner, string repo, out string downloadUrl, out string sha256)
     {
         // 获取当前运行环境信息
         var osPlatform = GetNormalizedOSPlatform();
         var cpuArch = GetNormalizedArchitecture();
-
+        downloadUrl = string.Empty;
+        sha256 = string.Empty;
         var releaseUrl = $"https://api.github.com/repos/{owner}/{repo}/releases/tags/{version}";
         using var httpClient = CreateHttpClientWithProxy();
         httpClient.DefaultRequestHeaders.UserAgent.TryParseAdd("MFAComponentUpdater/1.0");
@@ -1174,12 +1231,14 @@ public static class VersionChecker
                         .Select(asset => new
                         {
                             Url = asset["browser_download_url"]?.ToString(),
-                            Name = asset["name"]?.ToString().ToLower()
+                            Name = asset["name"]?.ToString().ToLower(),
+                            Sha256 = ExtractSha256FromDigest(asset["digest"]?.ToString())
                         })
                         .OrderByDescending(a => GetAssetPriority(a.Name, osPlatform, cpuArch))
                         .ToList();
-
-                    return orderedAssets.FirstOrDefault()?.Url ?? string.Empty;
+                    var orderAsset = orderedAssets.FirstOrDefault();
+                    downloadUrl = orderAsset?.Url ?? string.Empty;
+                    sha256 = orderAsset?.Sha256 ?? string.Empty;
                 }
             }
             else if (response.StatusCode == HttpStatusCode.Forbidden && response.ReasonPhrase.Contains("403"))
@@ -1198,7 +1257,6 @@ public static class VersionChecker
             LoggerHelper.Error($"处理GitHub响应时发生错误: {e.Message}");
             throw new Exception($"{e.Message}");
         }
-        return string.Empty;
     }
 
 // 标准化操作系统标识
@@ -1262,6 +1320,7 @@ public static class VersionChecker
         string cdk,
         out string url,
         out string latestVersion,
+        out string sha256,
         string userAgent = "MFA",
         bool isUI = false,
         bool onlyCheck = false,
@@ -1324,7 +1383,7 @@ public static class VersionChecker
 
             url = data["url"]?.ToString() ?? string.Empty;
             latestVersion = data["version_name"]?.ToString() ?? string.Empty;
-
+            sha256 = data["sha256"]?.ToString() ?? string.Empty;
             if (IsNewVersionAvailable(latestVersion, currentVersion))
             {
                 if (onlyCheck && !isUI && data != null)
@@ -1598,6 +1657,30 @@ public static class VersionChecker
         }
     }
 
+    async private static Task<bool> VerifyFileSha256Async(string filePath, string expectedSha256)
+    {
+        if (string.IsNullOrEmpty(expectedSha256) || !File.Exists(filePath))
+            return false;
+
+        try
+        {
+            using var fileStream = File.OpenRead(filePath);
+            using var sha256Algorithm = SHA256.Create();
+
+            // 计算文件的SHA256哈希
+            byte[] hashBytes = await sha256Algorithm.ComputeHashAsync(fileStream);
+            string actualSha256 = BitConverter.ToString(hashBytes).Replace("-", "").ToLowerInvariant();
+
+            // 比较计算结果与预期值
+            return actualSha256.Equals(expectedSha256, StringComparison.OrdinalIgnoreCase);
+        }
+        catch (Exception ex)
+        {
+            LoggerHelper.Error($"SHA256校验失败: {ex.Message}");
+            return false;
+        }
+    }
+
     public class MirrorChangesJson
     {
         [JsonProperty("modified")] public List<string>? Modified;
@@ -1713,7 +1796,7 @@ public static class VersionChecker
                         }
                     }
                     if (Path.GetExtension(tempPath).Equals(".dll", StringComparison.OrdinalIgnoreCase) && OperatingSystem.IsWindows()
-                        || Path.GetExtension(tempPath).Equals(".so", StringComparison.OrdinalIgnoreCase) && OperatingSystem.IsLinux()
+                        || !Path.GetFileName(tempPath).Contains("minicap.so", StringComparison.OrdinalIgnoreCase) && Path.GetExtension(tempPath).Equals(".so", StringComparison.OrdinalIgnoreCase) && OperatingSystem.IsLinux()
                         || Path.GetExtension(tempPath).Equals(".dylib", StringComparison.OrdinalIgnoreCase) && (OperatingSystem.IsMacOS() || OperatingSystem.IsIOS()))
                     {
                         LoggerHelper.Info("Skip file: " + tempPath);

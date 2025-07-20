@@ -1177,4 +1177,10 @@
     <data name="StoppingInternalTask" xml:space="preserve">
         <value>正在停止内部任务...</value>
     </data>
+    <data name="Verifying" xml:space="preserve">
+        <value>检验中</value>
+    </data>
+    <data name="HashVerificationFailed" xml:space="preserve">
+        <value>哈希验证失败！资源可能损坏，可能是网络波动导致的，请尝试重新下载资源</value>
+    </data>
 </root>

@@ -1169,4 +1169,10 @@
     <data name="StoppingInternalTask" xml:space="preserve">
         <value>Stopping internal task...</value>
     </data>
+    <data name="Verifying" xml:space="preserve">
+        <value>驗證中</value>
+    </data>
+    <data name="HashVerificationFailed" xml:space="preserve">
+        <value>雜湊驗證失敗！資源可能已損壞，可能是網路波動導致，請嘗試重新下載資源。</value>
+    </data>
 </root>
