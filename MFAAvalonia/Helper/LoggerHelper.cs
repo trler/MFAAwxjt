@@ -16,6 +16,7 @@ public static class LoggerHelper
     {
         if (_logger != null) return;
         _logger = new LoggerConfiguration()
+            .WriteTo.Console()
             .WriteTo.File(
                 $"logs/log-.txt",
                 rollingInterval: RollingInterval.Day,
@@ -57,12 +58,10 @@ public static class LoggerHelper
         if (_logger == null)
         {
             _logCache.Add((LogLevel.Info, message?.ToString() ?? string.Empty));
-            Console.WriteLine("[INFO]" + message);
         }
         else
         {
             _logger.Information(message?.ToString() ?? string.Empty);
-            Console.WriteLine("[INFO]" + message);
         }
     }
 
@@ -71,12 +70,10 @@ public static class LoggerHelper
         if (_logger == null)
         {
             _logCache.Add((LogLevel.Error, message.ToString() ?? string.Empty));
-            Console.WriteLine("[ERROR]" + message);
         }
         else
         {
             _logger.Error(message.ToString() ?? string.Empty);
-            Console.WriteLine("[ERROR]" + message);
         }
     }
 
@@ -86,12 +83,10 @@ public static class LoggerHelper
         if (_logger == null)
         {
             _logCache.Add((LogLevel.Error, errorMsg));
-            Console.WriteLine("[ERROR]" + errorMsg);
         }
         else
         {
             _logger.Error(errorMsg);
-            Console.WriteLine("[ERROR]" + errorMsg);
         }
     }
 
@@ -100,12 +95,10 @@ public static class LoggerHelper
         if (_logger == null)
         {
             _logCache.Add((LogLevel.Warn, message.ToString() ?? string.Empty));
-            Console.WriteLine("[WARN]" + message);
         }
         else
         {
             _logger.Warning(message.ToString() ?? string.Empty);
-            Console.WriteLine("[WARN]" + message);
         }
     }
 }
