@@ -405,7 +405,7 @@ public static class VersionChecker
             resourceDirPath = Path.Combine(tempExtractDir, "assets", "resource");
         }
 
-        if (isGithub)
+        if (isGithub || currentVersion.Equals("v0.0.0", StringComparison.OrdinalIgnoreCase))
         {
             if (Directory.Exists(resourcePath))
             {
