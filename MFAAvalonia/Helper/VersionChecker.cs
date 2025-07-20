@@ -441,7 +441,7 @@ public static class VersionChecker
                 }
                 else
                 {
-                    await File.WriteAllTextAsync(Path.Combine(AppContext.BaseDirectory, "logs"), string.Concat(DateTime.Now, "\n", changes));
+                    await File.WriteAllTextAsync(AppContext.BaseDirectory, string.Concat(DateTime.Now, "\n", changes));
                 }
                 try
                 {
@@ -467,7 +467,10 @@ public static class VersionChecker
                                     if (Path.GetExtension(delPath).Equals(".dll", StringComparison.OrdinalIgnoreCase) && OperatingSystem.IsWindows()
                                         || Path.GetExtension(delPath).Equals(".so", StringComparison.OrdinalIgnoreCase) && OperatingSystem.IsLinux()
                                         || Path.GetExtension(delPath).Equals(".dylib", StringComparison.OrdinalIgnoreCase) && (OperatingSystem.IsMacOS() || OperatingSystem.IsIOS()))
+                                    {
+                                        LoggerHelper.Info("Skip file: " + delPath);
                                         continue;
+                                    }
                                     LoggerHelper.Info("Deleting file: " + delPath);
                                     File.Delete(delPath);
                                 }
@@ -495,7 +498,10 @@ public static class VersionChecker
                                     if (Path.GetExtension(delPath).Equals(".dll", StringComparison.OrdinalIgnoreCase) && OperatingSystem.IsWindows()
                                         || Path.GetExtension(delPath).Equals(".so", StringComparison.OrdinalIgnoreCase) && OperatingSystem.IsLinux()
                                         || Path.GetExtension(delPath).Equals(".dylib", StringComparison.OrdinalIgnoreCase) && (OperatingSystem.IsMacOS() || OperatingSystem.IsIOS()))
+                                    {
+                                        LoggerHelper.Info("Skip file: " + delPath);
                                         continue;
+                                    }
                                     LoggerHelper.Info("Deleting file: " + delPath);
                                     File.Delete(delPath);
                                 }
@@ -1710,6 +1716,7 @@ public static class VersionChecker
                         || Path.GetExtension(tempPath).Equals(".so", StringComparison.OrdinalIgnoreCase) && OperatingSystem.IsLinux()
                         || Path.GetExtension(tempPath).Equals(".dylib", StringComparison.OrdinalIgnoreCase) && (OperatingSystem.IsMacOS() || OperatingSystem.IsIOS()))
                     {
+                        LoggerHelper.Info("Skip file: " + tempPath);
                         continue;
                     }
                     LoggerHelper.Info("Copying file: " + tempPath);
