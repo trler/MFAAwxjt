@@ -535,8 +535,8 @@ public static class VersionChecker
 
         SetProgress(progress, 70);
 
-        File.Delete(tempZipFilePath);
-        Directory.Delete(tempExtractDir, true);
+        // File.Delete(tempZipFilePath);
+        // Directory.Delete(tempExtractDir, true);
         SetProgress(progress, 80);
 
         var newInterfacePath = Path.Combine(wpfDir, "interface.json");
