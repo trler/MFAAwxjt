@@ -574,6 +574,25 @@ public class MaaProcessor
                 Toolkit = MaaProcessor.Toolkit,
                 DisposeOptions = DisposeOptions.None,
             };
+            
+            try
+            {
+                var tempMFADir = Path.Combine(AppContext.BaseDirectory, "temp_mfa");
+                if (Directory.Exists(tempMFADir))
+                    Directory.Delete(tempMFADir, true);
+
+                var tempMaaDir = Path.Combine(AppContext.BaseDirectory, "temp_maafw");
+                if (Directory.Exists(tempMaaDir))
+                    Directory.Delete(tempMaaDir, true);
+
+                var tempResDir = Path.Combine(AppContext.BaseDirectory, "temp_res");
+                if (Directory.Exists(tempResDir))
+                    Directory.Delete(tempResDir, true);
+            }
+            catch (Exception e)
+            {
+                LoggerHelper.Error(e);
+            }
 //            tasker.Resource.Register(new JieGardenAction());
             // 获取代理配置（假设Interface在UI线程中访问）
             var agentConfig = Interface?.Agent;

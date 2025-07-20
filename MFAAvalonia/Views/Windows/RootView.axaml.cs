@@ -237,24 +237,7 @@ public partial class RootView : SukiWindow
                 });
                 MaaProcessor.Instance.Start(true, checkUpdate: true);
             }
-            try
-            {
-                var tempMFADir = Path.Combine(AppContext.BaseDirectory, "temp_mfa");
-                if (Directory.Exists(tempMFADir))
-                    Directory.Delete(tempMFADir, true);
 
-                var tempMaaDir = Path.Combine(AppContext.BaseDirectory, "temp_maafw");
-                if (Directory.Exists(tempMaaDir))
-                    Directory.Delete(tempMaaDir, true);
-
-                var tempResDir = Path.Combine(AppContext.BaseDirectory, "temp_res");
-                if (Directory.Exists(tempResDir))
-                    Directory.Delete(tempResDir, true);
-            }
-            catch (Exception e)
-            {
-                LoggerHelper.Error(e);
-            }
             GlobalConfiguration.SetValue(ConfigurationKeys.NoAutoStart, bool.FalseString);
 
             Instances.RootViewModel.LockController = (MaaProcessor.Interface?.Controller?.Count ?? 0) < 2;

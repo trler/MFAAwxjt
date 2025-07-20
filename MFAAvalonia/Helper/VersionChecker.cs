@@ -441,7 +441,7 @@ public static class VersionChecker
                 }
                 else
                 {
-                    await File.WriteAllTextAsync(Path.Combine(AppContext.BaseDirectory, "logs"), changes);
+                    await File.WriteAllTextAsync(Path.Combine(AppContext.BaseDirectory, "logs"), string.Concat(DateTime.Now, "\n", changes));
                 }
                 try
                 {
