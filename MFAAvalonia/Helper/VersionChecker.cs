@@ -464,7 +464,10 @@ public static class VersionChecker
                                     {
                                         GlobalConfiguration.SetValue(ConfigurationKeys.DoNotShowAnnouncementAgain, bool.FalseString);
                                     }
-
+                                    if (Path.GetExtension(delPath).Equals(".dll", StringComparison.OrdinalIgnoreCase) && OperatingSystem.IsWindows()
+                                        || Path.GetExtension(delPath).Equals(".so", StringComparison.OrdinalIgnoreCase) && OperatingSystem.IsLinux()
+                                        || Path.GetExtension(delPath).Equals(".dylib", StringComparison.OrdinalIgnoreCase) && (OperatingSystem.IsMacOS() || OperatingSystem.IsIOS()))
+                                        continue;
                                     LoggerHelper.Info("Deleting file: " + delPath);
                                     File.Delete(delPath);
                                 }
@@ -489,6 +492,10 @@ public static class VersionChecker
                                     && !Path.GetFileName(delPath).Contains("MFAAvalonia")
                                     && !Path.GetFileName(delPath).Contains(Process.GetCurrentProcess().MainModule?.ModuleName ?? string.Empty))
                                 {
+                                    if (Path.GetExtension(delPath).Equals(".dll", StringComparison.OrdinalIgnoreCase) && OperatingSystem.IsWindows()
+                                        || Path.GetExtension(delPath).Equals(".so", StringComparison.OrdinalIgnoreCase) && OperatingSystem.IsLinux()
+                                        || Path.GetExtension(delPath).Equals(".dylib", StringComparison.OrdinalIgnoreCase) && (OperatingSystem.IsMacOS() || OperatingSystem.IsIOS()))
+                                        continue;
                                     LoggerHelper.Info("Deleting file: " + delPath);
                                     File.Delete(delPath);
                                 }
@@ -1698,6 +1705,12 @@ public static class VersionChecker
                         {
                             GlobalConfiguration.SetValue(ConfigurationKeys.DoNotShowAnnouncementAgain, bool.FalseString);
                         }
+                    }
+                    if (Path.GetExtension(tempPath).Equals(".dll", StringComparison.OrdinalIgnoreCase) && OperatingSystem.IsWindows()
+                        || Path.GetExtension(tempPath).Equals(".so", StringComparison.OrdinalIgnoreCase) && OperatingSystem.IsLinux()
+                        || Path.GetExtension(tempPath).Equals(".dylib", StringComparison.OrdinalIgnoreCase) && (OperatingSystem.IsMacOS() || OperatingSystem.IsIOS()))
+                    {
+                        continue;
                     }
                     LoggerHelper.Info("Copying file: " + tempPath);
                     file.CopyTo(tempPath, true);
