@@ -149,6 +149,9 @@
     </ItemGroup>
 	
 	<ItemGroup>
+		<Content Include="..\cliff.toml">
+		  <Link>cliff.toml</Link>
+		</Content>
 		<Content Include="..\README_en.md">
 		  <Link>README_en.md</Link>
 		</Content>
