@@ -1183,4 +1183,7 @@
     <data name="HashVerificationFailed" xml:space="preserve">
         <value>哈希验证失败！资源可能损坏，可能是网络波动导致的，请尝试重新下载资源</value>
     </data>
+    <data name="FileLoadFailed" xml:space="preserve">
+        <value>文件 {0} 加载失败！</value>
+    </data>
 </root>

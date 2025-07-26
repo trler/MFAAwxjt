@@ -1931,7 +1931,8 @@ public static class VersionChecker
                     return errors == SslPolicyErrors.None;
                 },
                 UseCookies = false,
-                SslProtocols = SslProtocols.Tls12 | SslProtocols.Tls13,
+// 临时增加对低版本协议的支持（仅用于测试）
+               SslProtocols = SslProtocols.None
             };
 
             switch (Instances.VersionUpdateSettingsUserControlModel.ProxyType)

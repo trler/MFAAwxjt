@@ -574,7 +574,7 @@ public class MaaProcessor
                 Toolkit = MaaProcessor.Toolkit,
                 DisposeOptions = DisposeOptions.None,
             };
-            
+
             try
             {
                 var tempMFADir = Path.Combine(AppContext.BaseDirectory, "temp_mfa");
@@ -1128,9 +1128,29 @@ public class MaaProcessor
         }
         else
         {
+            var defaultValue = new MaaInterface();
             Interface =
-                JsonHelper.LoadJson(Path.Combine(AppContext.BaseDirectory, "interface.json"),
-                    new MaaInterface(), new MaaInterfaceSelectAdvancedConverter(false),
+                JsonHelper.LoadJson(Path.Combine(AppContext.BaseDirectory, "interface.json"), defaultValue
+                    , errorHandle: () =>
+                    {
+                        var @interface = JObject.Parse(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "interface.json")));
+                        if (@interface != null)
+                        {
+                            try
+                            {
+                                defaultValue.MFAMinVersion = @interface["mfa_min_version"]?.ToString();
+                                defaultValue.MFAMaxVersion = @interface["mfa_max_version"]?.ToString();
+                                defaultValue.CustomTitle = @interface["custom_title"]?.ToString();
+                                defaultValue.Name = @interface["name"]?.ToString();
+                                defaultValue.Url = @interface["url"]?.ToString();
+                            }
+                            catch (Exception e)
+                            {
+                                LoggerHelper.Warning(e);
+                            }
+                            RootView.AddLog("FileLoadFailed".ToLocalizationFormatted(false, "interface.json"));
+                        }
+                    }, new MaaInterfaceSelectAdvancedConverter(false),
                     new MaaInterfaceSelectOptionConverter(false));
         }
 
@@ -2532,7 +2552,7 @@ public class MaaProcessor
     private MaaJobStatus AbortCurrentTasker()
     {
         if (MaaTasker == null)
-            return  MaaJobStatus.Succeeded;
+            return MaaJobStatus.Succeeded;
         var status = MaaTasker.Stop().Wait();
         LoggerHelper.Info("Stopping tasker, status: " + status);
         return status;

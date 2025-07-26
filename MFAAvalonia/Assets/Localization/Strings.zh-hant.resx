@@ -1175,4 +1175,7 @@
     <data name="HashVerificationFailed" xml:space="preserve">
         <value>雜湊驗證失敗！資源可能已損壞，可能是網路波動導致，請嘗試重新下載資源。</value>
     </data>
+    <data name="FileLoadFailed" xml:space="preserve">
+        <value>文件 {0} 載入失敗！</value>
+    </data>
 </root>
