@@ -1178,4 +1178,7 @@
     <data name="FileLoadFailed" xml:space="preserve">
         <value>File {0} failed to load!</value>
     </data>
+    <data name="CopyToClipboard" xml:space="preserve">
+        <value>Copy to clipboard</value>
+    </data>
 </root>

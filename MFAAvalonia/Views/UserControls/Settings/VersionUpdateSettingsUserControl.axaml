@@ -25,7 +25,8 @@
                 <DockPanel>
                     <TextBlock
                         DockPanel.Dock="Right"
-                        HorizontalAlignment="Center"
+                        HorizontalAlignment="Center" Cursor="Hand" PointerPressed="CopyVersion"
+                        ToolTip.Tip="{markup:I18n {x:Static helper:LangKeys.CopyToClipboard}}"
                         Text="{Binding MfaVersion}" />
                     <StackPanel HorizontalAlignment="Left" VerticalAlignment="Center">
                         <TextBlock
@@ -37,8 +38,9 @@
                 </DockPanel>
                 <DockPanel IsVisible="{Binding ShowResourceVersion}">
                     <TextBlock
-                        DockPanel.Dock="Right"
+                        DockPanel.Dock="Right" Cursor="Hand" PointerPressed="CopyVersion"
                         HorizontalAlignment="Center"
+                        ToolTip.Tip="{markup:I18n {x:Static helper:LangKeys.CopyToClipboard}}"
                         Text="{Binding ResourceVersion}" />
                     <StackPanel HorizontalAlignment="Left" VerticalAlignment="Center">
                         <TextBlock
@@ -51,7 +53,8 @@
                 <DockPanel>
                     <TextBlock
                         DockPanel.Dock="Right"
-                        HorizontalAlignment="Center"
+                        HorizontalAlignment="Center" Cursor="Hand" PointerPressed="CopyVersion"
+                        ToolTip.Tip="{markup:I18n {x:Static helper:LangKeys.CopyToClipboard}}"
                         Text="{Binding MaaFwVersion}" />
                     <StackPanel HorizontalAlignment="Left" VerticalAlignment="Center">
                         <TextBlock
