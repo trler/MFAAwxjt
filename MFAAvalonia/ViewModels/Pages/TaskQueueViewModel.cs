@@ -418,7 +418,12 @@ public partial class TaskQueueViewModel : ViewModelBase
         TaskManager.RunTask(() => AutoDetectDevice(_refreshCancellationTokenSource.Token), _refreshCancellationTokenSource.Token, handleError: (e) => HandleDetectionError(e, CurrentController == MaaControllerTypes.Adb),
             catchException: true, shouldLog: true);
     }
-
+    [RelayCommand]
+    private void CloseE()
+    {
+        MaaProcessor.CloseSoftware();
+    }
+    
     [RelayCommand]
     private void Clear()
     {

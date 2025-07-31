@@ -35,7 +35,9 @@ public static class EmulatorHelper
                 emulatorMode = "XYAZ";
             else if (windowName.Contains("BlueStacks"))
                 emulatorMode = "BlueStacks";
-
+            
+            LoggerHelper.Info("Emulator mode detected: " + emulatorMode);
+            
             return emulatorMode switch
             {
                 "Nox" => KillEmulatorNox(),
@@ -129,12 +131,14 @@ public static class EmulatorHelper
 // 新版路径推导: nx_device\12.0\shell\MuMuNxDevice.exe → 上三级目录 = 安装目录
 // 旧版路径推导: shell\MuMuPlayer.exe → 上一级目录 = 安装目录
         var installPath = Path.GetFullPath(Path.GetFileName(emulatorExePath).Equals("MuMuNxDevice.exe", StringComparison.OrdinalIgnoreCase)
-            ? Path.Combine(Path.GetDirectoryName(emulatorExePath)!, @"......")
+            ? Path.Combine(Path.GetDirectoryName(emulatorExePath)!, @"..\..\..")
             : Path.Combine(Path.GetDirectoryName(emulatorExePath)!, ".."));
 // 新旧路径分别尝试 MuMuManager.exe
         string newConsolePath = Path.Combine(installPath, @"nx_main\MuMuManager.exe");
         string oldConsolePath = Path.Combine(installPath, @"shell\MuMuManager.exe");
         string? consolePath = null;
+        LoggerHelper.Info("New console path: " + newConsolePath);
+        LoggerHelper.Info("Old console path: " + oldConsolePath);
         if (File.Exists(newConsolePath))
         {
             consolePath = newConsolePath;
@@ -457,7 +461,8 @@ public static class EmulatorHelper
     {
         var pid = 0;
         var windowName = new[]
-        {
+        { 
+            "MuMu安卓设备",
             "明日方舟",
             "明日方舟 - MuMu模拟器",
             "BlueStacks App Player",
