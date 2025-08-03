@@ -5,7 +5,7 @@ using Avalonia.Markup.Xaml;
 using AvaloniaExtensions.Axaml.Markup;
 using MFAAvalonia.Helper;
 using System.Threading.Tasks;
-using Windows.ApplicationModel.DataTransfer;
+
 
 namespace MFAAvalonia.Views.UserControls.Settings;
 
