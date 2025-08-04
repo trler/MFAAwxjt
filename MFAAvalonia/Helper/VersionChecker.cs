@@ -41,6 +41,7 @@ namespace MFAAvalonia.Helper;
 #pragma warning  disable CS4014 // 由于此调用不会等待，因此在此调用完成之前将会继续执行当前方法。
 public static class VersionChecker
 {
+    private static bool shouldShowToast = false;
     public enum VersionType
     {
         Alpha,
@@ -110,7 +111,7 @@ public static class VersionChecker
     {
         Queue.Enqueue(new ValueType.MFATask
         {
-            Action = async () => await UpdateResource(Instances.VersionUpdateSettingsUserControlModel.DownloadSourceIndex == 0, autoUpdateMFA, true),
+            Action = async () => await UpdateResource(Instances.VersionUpdateSettingsUserControlModel.DownloadSourceIndex == 0, autoUpdateMFA, autoUpdateMFA),
             Name = "更新资源"
         });
     }
@@ -260,6 +261,7 @@ public static class VersionChecker
 
     public async static Task UpdateResource(bool isGithub = true, bool closeDialog = false, bool noDialog = false, Action action = null, string currentVersion = "")
     {
+        shouldShowToast = false;
         Instances.RootViewModel.SetUpdating(true);
         ProgressBar? progress = null;
         TextBlock? textBlock = null;
@@ -602,12 +604,16 @@ public static class VersionChecker
                     }, dismissOnClick: true, "Flat", "Accent")
                     .WithActionButton("No".ToLocalization(), _ =>
                     {
+                        Dismiss(sukiToast);
                     }, dismissOnClick: true).TryShow();
+                shouldShowToast = false;
             }
         });
-
         var tasks = Instances.TaskQueueViewModel.TaskItemViewModels;
         Instances.RootView.ClearTasks(() => MaaProcessor.Instance.InitializeData(dragItem: tasks));
+        if (closeDialog)
+            Dismiss(sukiToast);
+        shouldShowToast = true;
         action?.Invoke();
     }
 
@@ -818,6 +824,19 @@ public static class VersionChecker
         {
             Instances.RootViewModel.SetUpdating(false);
             Dismiss(sukiToast);
+            if (shouldShowToast)
+            {
+                Instances.DialogManager.CreateDialog().WithContent("GameResourceUpdated".ToLocalization()).WithActionButton("Yes".ToLocalization(), _ =>
+                    {
+                        Process.Start(Process.GetCurrentProcess().MainModule?.FileName ?? string.Empty);
+                        Instances.ShutdownApplication();
+                    }, dismissOnClick: true, "Flat", "Accent")
+                    .WithActionButton("No".ToLocalization(), _ =>
+                    {
+                        Dismiss(sukiToast);
+                    }, dismissOnClick: true).TryShow();
+                shouldShowToast = false;
+            }
         }
     }
 
@@ -1730,7 +1749,14 @@ public static class VersionChecker
     {
         if (toast == null)
             return;
-        DispatcherHelper.RunOnMainThread(() => Instances.ToastManager.Dismiss(toast));
+        try
+        {
+            DispatcherHelper.RunOnMainThread(() => Instances.ToastManager.Dismiss(toast));
+        }
+        catch (Exception e)
+        {
+            LoggerHelper.Warning(e);
+        }
     }
 
     private static void CopyFolder(string sourceFolder, string destinationFolder)
