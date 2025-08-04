@@ -826,15 +826,18 @@ public static class VersionChecker
             Dismiss(sukiToast);
             if (shouldShowToast)
             {
-                Instances.DialogManager.CreateDialog().WithContent("GameResourceUpdated".ToLocalization()).WithActionButton("Yes".ToLocalization(), _ =>
-                    {
-                        Process.Start(Process.GetCurrentProcess().MainModule?.FileName ?? string.Empty);
-                        Instances.ShutdownApplication();
-                    }, dismissOnClick: true, "Flat", "Accent")
-                    .WithActionButton("No".ToLocalization(), _ =>
-                    {
-                        Dismiss(sukiToast);
-                    }, dismissOnClick: true).TryShow();
+                DispatcherHelper.PostOnMainThread(() =>
+                {
+                    Instances.DialogManager.CreateDialog().WithContent("GameResourceUpdated".ToLocalization()).WithActionButton("Yes".ToLocalization(), _ =>
+                        {
+                            Process.Start(Process.GetCurrentProcess().MainModule?.FileName ?? string.Empty);
+                            Instances.ShutdownApplication();
+                        }, dismissOnClick: true, "Flat", "Accent")
+                        .WithActionButton("No".ToLocalization(), _ =>
+                        {
+                            Dismiss(sukiToast);
+                        }, dismissOnClick: true).TryShow();
+                });
                 shouldShowToast = false;
             }
         }
