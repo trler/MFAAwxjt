@@ -140,7 +140,7 @@ public static class FileLogExporter
     private static List<FileInfoEx> GetEligibleFiles(string baseDirectory)
     {
         var eligibleFiles = new List<FileInfoEx>();
-        var twoDaysAgo = DateTime.Now.AddDays(-2); // 日期限制：仅保留两天内的文件
+        var twoDaysAgo = DateTime.Now.AddDays(-5); // 日期限制：仅保留两天内的文件
 
         // 1. 获取日志文件（.log 和 .txt）
         var debugDir = Path.Combine(baseDirectory, "debug");
