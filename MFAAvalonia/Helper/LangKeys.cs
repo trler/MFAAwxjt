@@ -400,4 +400,5 @@ public static class LangKeys
 	public static readonly string HashVerificationFailed = "HashVerificationFailed";
 	public static readonly string FileLoadFailed = "FileLoadFailed";
 	public static readonly string CopyToClipboard = "CopyToClipboard";
+	public static readonly string UseDirectMLSupportedDevice = "UseDirectMLSupportedDevice";
 }

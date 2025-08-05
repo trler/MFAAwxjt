@@ -1181,4 +1181,7 @@
     <data name="CopyToClipboard" xml:space="preserve">
         <value>複製到剪貼簿</value>
     </data>
+    <data name="UseDirectMLSupportedDevice" xml:space="preserve">
+        <value>Use DirectML-supported devices</value>
+    </data>
 </root>

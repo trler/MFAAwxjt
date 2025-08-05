@@ -1181,4 +1181,7 @@
     <data name="CopyToClipboard" xml:space="preserve">
         <value>Copy to clipboard</value>
     </data>
+    <data name="UseDirectMLSupportedDevice" xml:space="preserve">
+        <value>使用 DirectML 支援設備</value>
+    </data>
 </root>

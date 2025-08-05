@@ -524,7 +524,8 @@ public class MaaProcessor
                 return new MaaResource(resources);
             }, token, catchException: true, shouldLog: false, handleError: exception => HandleInitializationError(exception, "LoadResourcesFailed".ToLocalization()));
 
-            maaResource.SetOption_InferenceDevice(Instances.PerformanceUserControlModel.GpuOption);
+            Instances.PerformanceUserControlModel.ChangeGpuOption(maaResource, Instances.PerformanceUserControlModel.GpuOption);
+
             LoggerHelper.Info($"GPU acceleration: {Instances.PerformanceUserControlModel.GpuOption}");
         }
         catch (OperationCanceledException)
