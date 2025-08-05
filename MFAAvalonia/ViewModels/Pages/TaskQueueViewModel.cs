@@ -315,6 +315,11 @@ public partial class TaskQueueViewModel : ViewModelBase
     private DateTime? _lastExecutionTime;
     partial void OnCurrentDeviceChanged(object? value)
     {
+        ChangedDevice(value);
+    }
+
+    public void ChangedDevice(object? value)
+    {
         if (value != null)
         {
             var now = DateTime.Now;
@@ -324,16 +329,13 @@ public partial class TaskQueueViewModel : ViewModelBase
             }
             else
             {
-                if (now - _lastExecutionTime < TimeSpan.FromSeconds(1))
+                if (now - _lastExecutionTime < TimeSpan.FromSeconds(2))
                     return;
                 _lastExecutionTime = now;
             }
+            Console.WriteLine(_lastExecutionTime);
         }
-        ChangedDevice(value);
-    }
-
-    public void ChangedDevice(object? value)
-    {
+        Console.WriteLine(new StackTrace(true));
         if (value is DesktopWindowInfo window)
         {
             ToastHelper.Info("WindowSelectionMessage".ToLocalizationFormatted(false, ""), window.Name);
@@ -352,7 +354,7 @@ public partial class TaskQueueViewModel : ViewModelBase
             ConfigurationManager.Current.SetValue(ConfigurationKeys.AdbDevice, device);
         }
     }
-    
+
     [ObservableProperty] private MaaControllerTypes _currentController =
         ConfigurationManager.Current.GetValue(ConfigurationKeys.CurrentController, MaaControllerTypes.Adb, MaaControllerTypes.None, new UniversalEnumConverter<MaaControllerTypes>());
 
@@ -423,7 +425,7 @@ public partial class TaskQueueViewModel : ViewModelBase
     {
         MaaProcessor.CloseSoftware();
     }
-    
+
     [RelayCommand]
     private void Clear()
     {
@@ -434,7 +436,7 @@ public partial class TaskQueueViewModel : ViewModelBase
     {
         FileLogExporter.CompressRecentLogs(Instances.RootView.StorageProvider);
     }
-    
+
     public void AutoDetectDevice(CancellationToken token = default)
     {
         var isAdb = CurrentController == MaaControllerTypes.Adb;
