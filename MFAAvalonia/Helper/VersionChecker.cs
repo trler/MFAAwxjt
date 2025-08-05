@@ -42,6 +42,7 @@ namespace MFAAvalonia.Helper;
 public static class VersionChecker
 {
     private static bool shouldShowToast = false;
+
     public enum VersionType
     {
         Alpha,
@@ -497,7 +498,7 @@ public static class VersionChecker
                                         LoggerHelper.Info("Skip file: " + delPath);
                                         continue;
                                     }
-                                    LoggerHelper.Info("Deleting file: " + delPath);
+                                    LoggerHelper.Info("Deleting Deleted file: " + delPath);
                                     File.Delete(delPath);
                                 }
                             }
@@ -528,7 +529,7 @@ public static class VersionChecker
                                         LoggerHelper.Info("Skip file: " + delPath);
                                         continue;
                                     }
-                                    LoggerHelper.Info("Deleting file: " + delPath);
+                                    LoggerHelper.Info("Deleting Modified file: " + delPath);
                                     File.Delete(delPath);
                                 }
                             }
@@ -557,19 +558,18 @@ public static class VersionChecker
             file.CopyTo(targetPath, true);
         }
 
-        SetProgress(progress, 60);
+        SetProgress(progress, 1);
 
         var di = new DirectoryInfo(originPath);
         if (di.Exists)
         {
-            DirectoryMerge(originPath, wpfDir, false, true);
+            await DirectoryMerger.DirectoryMergeAsync(originPath, wpfDir, progress, false, true);
         }
 
-        SetProgress(progress, 70);
 
         // File.Delete(tempZipFilePath);
         // Directory.Delete(tempExtractDir, true);
-        SetProgress(progress, 80);
+ 
 
         var newInterfacePath = Path.Combine(wpfDir, "interface.json");
         if (File.Exists(newInterfacePath))
@@ -1784,73 +1784,6 @@ public static class VersionChecker
             CopyFolder(subDirectory, destinationSubDirectory);
         }
     }
-// 修改 DirectoryMerge 方法中的文件复制逻辑
-    private static void DirectoryMerge(string sourceDirName, string destDirName, bool overwriteMFA = true, bool saveAnnouncement = false)
-    {
-        var dir = new DirectoryInfo(sourceDirName);
-        var dirs = dir.GetDirectories();
-
-        if (!dir.Exists)
-        {
-            throw new DirectoryNotFoundException("Source directory does not exist or could not be found: " + sourceDirName);
-        }
-
-        if (!Directory.Exists(destDirName))
-        {
-            Directory.CreateDirectory(destDirName);
-        }
-
-        foreach (var file in dir.GetFiles())
-        {
-            var tempPath = Path.Combine(destDirName, file.Name);
-            try
-            {
-                if (overwriteMFA
-                    || !Path.GetFileName(tempPath).Contains("MFAUpdater") && !Path.GetFileName(tempPath).Contains("MFAAvalonia") && !Path.GetFileName(tempPath).Contains(Process.GetCurrentProcess().MainModule?.ModuleName ?? string.Empty))
-                {
-                    if (saveAnnouncement && tempPath.Contains(AnnouncementViewModel.AnnouncementFolder) && Path.GetExtension(file.Name).Equals(".md", StringComparison.OrdinalIgnoreCase))
-                    {
-                        if (File.Exists(tempPath))
-                        {
-                            var sourceContent = File.ReadAllText(file.FullName);
-                            var destContent = File.ReadAllText(tempPath);
-
-                            if (!string.Equals(sourceContent, destContent, StringComparison.Ordinal))
-                            {
-                                GlobalConfiguration.SetValue(ConfigurationKeys.DoNotShowAnnouncementAgain, bool.FalseString);
-                            }
-                        }
-                        else
-                        {
-                            GlobalConfiguration.SetValue(ConfigurationKeys.DoNotShowAnnouncementAgain, bool.FalseString);
-                        }
-                    }
-                    if (Path.GetExtension(tempPath).Equals(".dll", StringComparison.OrdinalIgnoreCase) && OperatingSystem.IsWindows()
-                        || !Path.GetFileName(tempPath).Contains("minicap.so", StringComparison.OrdinalIgnoreCase) && Path.GetExtension(tempPath).Equals(".so", StringComparison.OrdinalIgnoreCase) && OperatingSystem.IsLinux()
-                        || Path.GetExtension(tempPath).Equals(".dylib", StringComparison.OrdinalIgnoreCase) && (OperatingSystem.IsMacOS() || OperatingSystem.IsIOS()))
-                    {
-                        LoggerHelper.Info("Skip file: " + tempPath);
-                        continue;
-                    }
-                    LoggerHelper.Info("Copying file: " + tempPath);
-                    file.CopyTo(tempPath, true);
-                }
-            }
-            catch (IOException exception)
-            {
-                LoggerHelper.Error(exception);
-            }
-            catch (Exception exception)
-            {
-                LoggerHelper.Error(exception);
-            }
-        }
-        foreach (var subDir in dirs)
-        {
-            string tempPath = Path.Combine(destDirName, subDir.Name);
-            DirectoryMerge(subDir.FullName, tempPath, overwriteMFA, saveAnnouncement);
-        }
-    }
 
     private static void SaveRelease(JToken? releaseData, string from)
     {
@@ -1962,7 +1895,7 @@ public static class VersionChecker
                 },
                 UseCookies = false,
 // 临时增加对低版本协议的支持（仅用于测试）
-               SslProtocols = SslProtocols.None
+                SslProtocols = SslProtocols.None
             };
 
             switch (Instances.VersionUpdateSettingsUserControlModel.ProxyType)
