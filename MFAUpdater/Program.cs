@@ -8,7 +8,7 @@ using System.Threading;
 
 public class Program
 {
-    static StringBuilder LogBuilder = new StringBuilder();
+    static StringBuilder LogBuilder = new ();
     static void SaveLog()
     {
         string logDir = Path.Combine(AppContext.BaseDirectory, "logs");
