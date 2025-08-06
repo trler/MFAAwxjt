@@ -182,5 +182,10 @@ jobs:
         run: |
           ls -R artifacts
           echo "Total files: $(find artifacts -type f | wc -l)"
-
+          
+      - name: Upload Test Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-builds 
+          path: artifacts/*
 
