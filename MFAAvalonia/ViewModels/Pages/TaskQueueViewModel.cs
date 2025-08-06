@@ -309,7 +309,7 @@ public partial class TaskQueueViewModel : ViewModelBase
     #endregion
 
     #region 连接
-
+    [ObservableProperty] private int shouldShow = 0;
     [ObservableProperty] private ObservableCollection<object> _devices = [];
     [ObservableProperty] private object? _currentDevice;
     private DateTime? _lastExecutionTime;
@@ -660,6 +660,8 @@ public partial class TaskQueueViewModel : ViewModelBase
 
     #endregion
 
+    #region 缩放
+
     // 三列宽度配置
     private const string DefaultColumn1Width = "350";
     private const string DefaultColumn2Width = "1*";
@@ -902,4 +904,6 @@ public partial class TaskQueueViewModel : ViewModelBase
             return true;
         }
     }
+
+    #endregion
 }
