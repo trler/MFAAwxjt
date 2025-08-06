@@ -569,7 +569,7 @@ public static class VersionChecker
 
         // File.Delete(tempZipFilePath);
         // Directory.Delete(tempExtractDir, true);
- 
+
 
         var newInterfacePath = Path.Combine(wpfDir, "interface.json");
         if (File.Exists(newInterfacePath))
@@ -755,18 +755,23 @@ public static class VersionChecker
                     var sourceVersionInfo = FileVersionInfo.GetVersionInfo(sourceUpdaterPath);
                     var targetVersion = targetVersionInfo.FileVersion; // 或 ProductVersion
                     var sourceVersion = sourceVersionInfo.FileVersion;
-
+                    LoggerHelper.Info("Target Updater Version: " + targetVersion);
+                    LoggerHelper.Info("Source Updater Version: " + sourceVersion);
                     // 使用Version类比较版本
-                    var vTarget = new Version(targetVersion);
-                    var vSource = new Version(sourceVersion);
-
-                    int result = vTarget.CompareTo(vSource);
-                    if (result < 0)
+                    if (Version.TryParse(targetVersion, out var vTarget) && Version.TryParse(sourceVersion, out var vSource))
                     {
-                        if (File.Exists(sourceUpdaterPath) && !RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                        int result = vTarget.CompareTo(vSource);
+                        if (result < 0)
                         {
-                            var chmodProcess = Process.Start("/bin/chmod", $"+x {sourceDirectory}");
-                            await chmodProcess?.WaitForExitAsync();
+                            if (File.Exists(sourceUpdaterPath) && !RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                            {
+                                var chmodProcess = Process.Start("/bin/chmod", $"+x {sourceDirectory}");
+                                await chmodProcess?.WaitForExitAsync();
+                            }
+                        }
+                        else if (result > 0)
+                        {
+                            update = false;
                         }
                     }
 
@@ -799,18 +804,6 @@ public static class VersionChecker
             if (update)
             {
                 File.Copy(sourceUpdaterPath, targetUpdaterPath, overwrite: true);
-                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-                {
-                    try
-                    {
-                        File.Copy(Path.Combine(sourceDirectory, "MFAUpdater.dll"), Path.Combine(utf8BaseDirectory, "MFAUpdater.dll"), overwrite: true);
-                        LoggerHelper.Info($"成功复制更新器.dll到目标目录: {Path.Combine(utf8BaseDirectory, "MFAUpdater.dll")}");
-                    }
-                    catch (Exception e)
-                    {
-                        LoggerHelper.Error(e);
-                    }
-                }
                 LoggerHelper.Info($"成功复制更新器到目标目录: {targetUpdaterPath}");
             }
             SetProgress(progress, 100);
@@ -902,29 +895,37 @@ public static class VersionChecker
             throw new FileNotFoundException("更新程序源文件未找到");
         }
 
-        if (File.Exists(updaterPath) && !RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-        {
-            var chmodProcess = Process.Start("/bin/chmod", $"+x {updaterPath}");
-            await chmodProcess?.WaitForExitAsync();
-        }
-
+        // 仅执行一次chmod（修复重复执行问题）
         if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
         {
             var chmodProcess = Process.Start("/bin/chmod", $"+x {updaterPath}");
-            await chmodProcess?.WaitForExitAsync();
+            // 增强错误处理：检查进程是否启动成功
+            if (chmodProcess == null)
+            {
+                LoggerHelper.Error("无法启动chmod进程，可能缺少权限");
+                throw new InvalidOperationException("设置更新器执行权限失败");
+            }
+            await chmodProcess.WaitForExitAsync();
+            if (chmodProcess.ExitCode != 0)
+            {
+                LoggerHelper.Error($"chmod执行失败，退出码: {chmodProcess.ExitCode}");
+                throw new InvalidOperationException("设置更新器执行权限失败");
+            }
         }
+
+        // 获取当前进程PID，传递给更新器（关键修改）
+        int currentProcessId = Process.GetCurrentProcess().Id;
 
         var psi = new ProcessStartInfo
         {
             WorkingDirectory = AppContext.BaseDirectory,
-            FileName = updaterName,
-            Arguments = BuildArguments(source, target, oldName, newName),
+            FileName = updaterPath, // 使用完整路径
+            Arguments = $"{BuildArguments(source, target, oldName, newName)} {EscapeArgument(currentProcessId.ToString())}",
             CreateNoWindow = true,
             WindowStyle = ProcessWindowStyle.Hidden
         };
 
-
-        LoggerHelper.Info($"{Path.Combine(AppContext.BaseDirectory, updaterName)} {BuildArguments(source, target, oldName, newName)}");
+        LoggerHelper.Info($"{Path.Combine(AppContext.BaseDirectory, updaterName)} {BuildArguments(source, target, oldName, newName)} {EscapeArgument(currentProcessId.ToString())}");
 
         try
         {
@@ -941,9 +942,11 @@ public static class VersionChecker
         }
         finally
         {
-            Environment.Exit(0);
+            DispatcherHelper.PostOnMainThread(Instances.RootView.BeforeClosed);
+            Instances.ShutdownApplication();
         }
     }
+
 
     private static string CreateVersionBackup(string dir)
     {

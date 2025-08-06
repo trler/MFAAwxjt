@@ -214,29 +214,29 @@ public partial class TaskQueueViewModel : ViewModelBase
 
     public void OutputDownloadProgress(string output, bool downloading = true)
     {
-        DispatcherHelper.RunOnMainThread(() =>
-        {
-            var log = new LogItemViewModel(downloading ? "NewVersionFoundDescDownloading".ToLocalization() + "\n" + output : output, Instances.RootView.FindResource("SukiAccentColor") as IBrush,
-                dateFormat: "HH':'mm':'ss")
-            {
-                IsDownloading = true,
-            };
-            if (LogItemViewModels.Count > 0 && LogItemViewModels[0].IsDownloading)
-            {
-                if (!string.IsNullOrEmpty(output))
-                {
-                    LogItemViewModels[0] = log;
-                }
-                else
-                {
-                    LogItemViewModels.RemoveAt(0);
-                }
-            }
-            else if (!string.IsNullOrEmpty(output))
-            {
-                LogItemViewModels.Insert(0, log);
-            }
-        });
+        // DispatcherHelper.RunOnMainThread(() =>
+        // {
+        //     var log = new LogItemViewModel(downloading ? "NewVersionFoundDescDownloading".ToLocalization() + "\n" + output : output, Instances.RootView.FindResource("SukiAccentColor") as IBrush,
+        //         dateFormat: "HH':'mm':'ss")
+        //     {
+        //         IsDownloading = true,
+        //     };
+        //     if (LogItemViewModels.Count > 0 && LogItemViewModels[0].IsDownloading)
+        //     {
+        //         if (!string.IsNullOrEmpty(output))
+        //         {
+        //             LogItemViewModels[0] = log;
+        //         }
+        //         else
+        //         {
+        //             LogItemViewModels.RemoveAt(0);
+        //         }
+        //     }
+        //     else if (!string.IsNullOrEmpty(output))
+        //     {
+        //         LogItemViewModels.Insert(0, log);
+        //     }
+        // });
     }
 
     public const string INFO = "info:";
