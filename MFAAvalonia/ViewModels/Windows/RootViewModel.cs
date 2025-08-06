@@ -73,15 +73,16 @@ public partial class RootViewModel : ViewModelBase
             _shouldTip = false;
         }
     }
-    
+
     public void SetUpdating(bool isUpdating)
     {
         IsUpdating = isUpdating;
     }
 
-    partial void OnIsDebugModeChanged(bool _)
+    partial void OnIsDebugModeChanged(bool value)
     {
-        CheckDebug();
+        if (value)
+            CheckDebug();
     }
 
     public void ShowResourceName(string name)

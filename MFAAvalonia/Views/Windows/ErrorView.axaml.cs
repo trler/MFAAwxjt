@@ -73,7 +73,7 @@ public partial class ErrorView : SukiWindow
             errorView.ShowDialog(Instances.RootView);
         });
     }
-
+#pragma warning disable CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
     // 复制到剪贴板
     private void CopyErrorMessage_Click(object sender, RoutedEventArgs e)
     {

@@ -49,9 +49,9 @@ public partial class LocalizationViewModel<T> : ViewModelBase
         {
             if (!global::System.Collections.Generic.EqualityComparer<string>.Default.Equals(_name, value))
             {
-                OnPropertyChanging(global::CommunityToolkit.Mvvm.ComponentModel.__Internals.__KnownINotifyPropertyChangingArgs.Name);
+                OnPropertyChanging(Name);
                 _name = value;
-                OnPropertyChanged(global::CommunityToolkit.Mvvm.ComponentModel.__Internals.__KnownINotifyPropertyChangedArgs.Name);
+                OnPropertyChanged(Name);
             }
         }
     }
@@ -113,9 +113,9 @@ public partial class LocalizationViewModel : ViewModelBase
         {
             if (!global::System.Collections.Generic.EqualityComparer<string>.Default.Equals(_name, value))
             {
-                OnPropertyChanging(global::CommunityToolkit.Mvvm.ComponentModel.__Internals.__KnownINotifyPropertyChangingArgs.Name);
+                OnPropertyChanging(Name);
                 _name = value;
-                OnPropertyChanged(global::CommunityToolkit.Mvvm.ComponentModel.__Internals.__KnownINotifyPropertyChangedArgs.Name);
+                OnPropertyChanged(Name);
             }
         }
     }

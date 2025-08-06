@@ -49,11 +49,9 @@ public class JieGardenAction : IMaaCustomAction
         IMaaImageBuffer image = new MaaImageBuffer();
         RecognitionDetail? detail;
         bool shouldContinue = true;
-        bool success = false;
         //进入
         while (shouldContinue)
         {
-            var shouldContinueA = false;
             context.GetImage(ref image);
             var combatCount = 0;
             ((Func<bool>)(() =>
@@ -278,7 +276,6 @@ public class JieGardenAction : IMaaCustomAction
                         {
                             if (Leave(context, args))
                             {
-                                shouldContinueA = true;
                                 return true;
                             }
                         }

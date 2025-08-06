@@ -64,9 +64,9 @@ public partial class PerformanceUserControlModel : ViewModelBase
         return adapters;
     }
 #endif
-    partial void OnUseDirectMLChanged(bool v) => HandlePropertyChanged(ConfigurationKeys.UseDirectML, v, (value) =>
+    partial void OnUseDirectMLChanged(bool value) => HandlePropertyChanged(ConfigurationKeys.UseDirectML, value, (v) =>
     {
-        if (value)
+        if (v)
         {
 #if WINDOWS
             if (GpuOptions.Count == 2)

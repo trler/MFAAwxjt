@@ -429,6 +429,7 @@ public partial class TaskQueueViewModel : ViewModelBase
     {
         LogItemViewModels.Clear();
     }
+#pragma warning disable CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
     [RelayCommand]
     private void Export()
     {

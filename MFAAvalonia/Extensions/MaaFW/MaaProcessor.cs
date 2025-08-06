@@ -500,7 +500,6 @@ public class MaaProcessor
                 }
             }
         }
-        return null;
     }
 
     async private Task<MaaTasker?> InitializeMaaTasker(CancellationToken token) // 添加 async 和 token
