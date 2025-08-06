@@ -333,9 +333,7 @@ public partial class TaskQueueViewModel : ViewModelBase
                     return;
                 _lastExecutionTime = now;
             }
-            Console.WriteLine(_lastExecutionTime);
         }
-        Console.WriteLine(new StackTrace(true));
         if (value is DesktopWindowInfo window)
         {
             ToastHelper.Info("WindowSelectionMessage".ToLocalizationFormatted(false, ""), window.Name);

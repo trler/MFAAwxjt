@@ -114,6 +114,7 @@ public class MaaProcessor
             _agentProcess?.Kill();
             _agentProcess?.Dispose();
             _agentProcess = null;
+            Instances.TaskQueueViewModel.SetConnected(false);
         }
         MaaTasker = maaTasker;
     }
@@ -526,15 +527,22 @@ public class MaaProcessor
 
             Instances.PerformanceUserControlModel.ChangeGpuOption(maaResource, Instances.PerformanceUserControlModel.GpuOption);
 
-            LoggerHelper.Info($"GPU acceleration: {Instances.PerformanceUserControlModel.GpuOption}");
+            LoggerHelper.Info(
+                $"GPU acceleration: {(Instances.PerformanceUserControlModel.GpuOption.IsDirectML ? Instances.PerformanceUserControlModel.GpuOption.Adapter.AdapterName : Instances.PerformanceUserControlModel.GpuOption.Device.ToString())}");
+            
         }
         catch (OperationCanceledException)
         {
             LoggerHelper.Warning("Resource loading was canceled");
             return null;
         }
-        catch (Exception)
+        catch (MaaException)
         {
+            return null;
+        }
+        catch (Exception e)
+        {
+            LoggerHelper.Error("Initialization resource error", e);
             return null;
         }
 
@@ -558,10 +566,16 @@ public class MaaProcessor
             LoggerHelper.Warning("Controller initialization was canceled");
             return null;
         }
-        catch (Exception)
+        catch (MaaException)
         {
             return null;
         }
+        catch (Exception e)
+        {
+            LoggerHelper.Error("Initialization controller error", e);
+            return null;
+        }
+
         try
         {
             token.ThrowIfCancellationRequested();
@@ -771,8 +785,13 @@ public class MaaProcessor
             LoggerHelper.Warning("Tasker initialization was canceled");
             return null;
         }
-        catch (Exception)
+        catch (MaaException)
         {
+            return null;
+        }
+        catch (Exception e)
+        {
+            LoggerHelper.Error("Initialization tasker error", e);
             return null;
         }
     }
@@ -2311,6 +2330,7 @@ public class MaaProcessor
     {
         token.ThrowIfCancellationRequested();
         var instance = await GetTaskerAsync(token);
+        Console.WriteLine("!!!! IsInitialized: " + instance?.IsInitialized);
         return instance is { IsInitialized: true };
     }
 

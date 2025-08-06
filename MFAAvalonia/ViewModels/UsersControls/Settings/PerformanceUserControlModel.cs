@@ -5,6 +5,7 @@ using MFAAvalonia.Configuration;
 using MFAAvalonia.Extensions.MaaFW;
 using MFAAvalonia.Helper.Converters;
 using MFAAvalonia.ViewModels.Other;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 
@@ -17,13 +18,18 @@ namespace MFAAvalonia.ViewModels.UsersControls.Settings;
 
 public partial class PerformanceUserControlModel : ViewModelBase
 {
+    protected override void Initialize()
+    {
+        GpuOption = GpuOptions[GpuIndex].Other;
+        base.Initialize();
+    }
     [ObservableProperty] public bool _isDirectMLSupported = OperatingSystem.IsWindows();
 
     [ObservableProperty] private bool _useDirectML = ConfigurationManager.Current.GetValue(ConfigurationKeys.UseDirectML, false);
 
     public class DirectMLAdapterInfo
     {
-        public int AdapterId { get; set; } // 与EnumAdapters1索引一致
+        public int AdapterId { get; set; } = -1; // 与EnumAdapters1索引一致
         public string AdapterName { get; set; }
         public bool IsDirectMLCompatible { get; set; }
     }
@@ -58,28 +64,26 @@ public partial class PerformanceUserControlModel : ViewModelBase
         return adapters;
     }
 #endif
-    partial void OnUseDirectMLChanged(bool value)
+    partial void OnUseDirectMLChanged(bool v) => HandlePropertyChanged(ConfigurationKeys.UseDirectML, v, (value) =>
     {
         if (value)
         {
 #if WINDOWS
             if (GpuOptions.Count == 2)
             {
-                var gpus = ConfigurationManager.Current.GetValue(ConfigurationKeys.GPUs, new List<LocalizationViewModel>());
-                if (gpus.Count <= 0)
-                {
-                    var adapters = GetCompatibleAdapters();
-                    foreach (var adapter in adapters)
-                    {
-                        gpus.Add(new LocalizationViewModel(adapter.AdapterName)
-                        {
-                            Other = new GpuDeviceOption(adapter.AdapterId)
-                        });
-                    }
-                    ConfigurationManager.Current.GetValue(ConfigurationKeys.GPUs, gpus);
-                }
+                var gpus = new List<LocalizationViewModel<GpuDeviceOption>>();
 
+                var adapters = GetCompatibleAdapters();
+                foreach (var adapter in adapters)
+                {
+                    gpus.Add(new LocalizationViewModel<GpuDeviceOption>(adapter.AdapterName)
+                    {
+                        Other = new GpuDeviceOption(adapter)
+                    });
+                }
                 GpuOptions.InsertRange(1, gpus);
+                ConfigurationManager.Current.SetValue(ConfigurationKeys.GPUs, GpuOptions);
+                MaaProcessor.Instance.SetTasker();
             }
 #endif
         }
@@ -87,14 +91,25 @@ public partial class PerformanceUserControlModel : ViewModelBase
         {
             if (GpuOptions.Count != 2)
             {
+                if (GpuIndex == GpuOptions.Count - 1)
+                {
+                    GpuIndex = 1;
+                }
+                if (GpuIndex > 0 && GpuIndex < GpuOptions.Count - 1)
+                {
+                    GpuIndex = 0;
+                    MaaProcessor.Instance.SetTasker();
+                }
                 while (GpuOptions.Count > 2)
                 {
                     GpuOptions.RemoveAt(1);
                 }
-                GpuOption = GpuOptions[0].Other as GpuDeviceOption;
+
+                ConfigurationManager.Current.SetValue(ConfigurationKeys.GPUs, GpuOptions);
             }
         }
-    }
+
+    });
 
     public class GpuDeviceOption
     {
@@ -102,39 +117,53 @@ public partial class PerformanceUserControlModel : ViewModelBase
         public static GpuDeviceOption CPU = new(InferenceDevice.CPU);
         public static GpuDeviceOption GPU0 = new(InferenceDevice.GPU0);
         public static GpuDeviceOption GPU1 = new(InferenceDevice.GPU1);
+        public GpuDeviceOption()
+        {
+
+        }
         public GpuDeviceOption(InferenceDevice device)
         {
             Device = device;
             IsDirectML = false;
         }
-        public GpuDeviceOption(int id)
+        public GpuDeviceOption(DirectMLAdapterInfo adapter)
         {
-            Id = id;
+            Adapter = adapter;
             IsDirectML = true;
         }
         public InferenceDevice Device;
-        public int Id;
+        public DirectMLAdapterInfo Adapter;
         public bool IsDirectML;
     }
 
-    [ObservableProperty] private AvaloniaList<LocalizationViewModel> _gpuOptions =
-    [
-        new("GpuOptionAuto")
+    [ObservableProperty] private AvaloniaList<LocalizationViewModel<GpuDeviceOption>> _gpuOptions =
+        ConfigurationManager.Current.GetValue(ConfigurationKeys.GPUs, new AvaloniaList<LocalizationViewModel<GpuDeviceOption>>
         {
-            Other = GpuDeviceOption.Auto,
-        },
-        new("GpuOptionDisable")
-        {
-            Other = GpuDeviceOption.CPU
-        }
-    ];
+            new("GpuOptionAuto")
+            {
+                Other = GpuDeviceOption.Auto,
+            },
+            new("GpuOptionDisable")
+            {
+                Other = GpuDeviceOption.CPU
+            }
+        }, null, new UniversalEnumConverter<InferenceDevice>());
 
-    [ObservableProperty] private GpuDeviceOption _gpuOption = ConfigurationManager.Current.GetValue(ConfigurationKeys.GPUOption, GpuDeviceOption.Auto, GpuDeviceOption.GPU0, new UniversalEnumConverter<InferenceDevice>());
+    partial void OnGpuOptionsChanged(AvaloniaList<LocalizationViewModel<GpuDeviceOption>> value) => HandlePropertyChanged(ConfigurationKeys.GPUs, value);
 
-    partial void OnGpuOptionChanged(GpuDeviceOption value) => HandlePropertyChanged(ConfigurationKeys.GPUOption, value, v =>
+    [ObservableProperty] private int _gpuIndex = ConfigurationManager.Current.GetValue(ConfigurationKeys.GPUOption, 0);
+    partial void OnGpuIndexChanged(int value) => HandlePropertyChanged(ConfigurationKeys.GPUOption, value, () =>
+    {
+        GpuOption = GpuOptions[value].Other;
+    });
+
+    [ObservableProperty] private GpuDeviceOption? _gpuOption;
+
+    partial void OnGpuOptionChanged(GpuDeviceOption? value)
     {
         ChangeGpuOption(MaaProcessor.Instance.MaaTasker?.Resource, value);
-    });
+        MaaProcessor.Instance.SetTasker();
+    }
 
     public void ChangeGpuOption(MaaResource? resource, GpuDeviceOption? option)
     {
@@ -143,7 +172,7 @@ public partial class PerformanceUserControlModel : ViewModelBase
             if (option.IsDirectML)
             {
                 resource.SetOption_InferenceExecutionProvider(InferenceExecutionProvider.DirectML);
-                resource.SetOption_InferenceDevice(option.Id);
+                resource.SetOption_InferenceDevice(option.Adapter.AdapterId);
             }
             else
             {

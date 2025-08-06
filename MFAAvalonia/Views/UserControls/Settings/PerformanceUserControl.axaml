@@ -26,9 +26,7 @@
                           Focusable="False"
                           HorizontalAlignment="Center"
                           IsEnabled="{Binding Idle, Source={x:Static helper:Instances.RootViewModel}}"
-                          ItemsSource="{Binding GpuOptions}"
-                          SelectedValue="{Binding GpuOption}"
-                          SelectedValueBinding="{Binding Other}"
+                          ItemsSource="{Binding GpuOptions}" SelectedIndex="{Binding GpuIndex}"
                           VerticalAlignment="Center"
                           Width="215" />
 
