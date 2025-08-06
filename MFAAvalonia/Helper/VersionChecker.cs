@@ -220,7 +220,7 @@ public static class VersionChecker
             string latestVersion = string.Empty;
             string sha256 = string.Empty;
             if (isGithub)
-                GetLatestVersionAndDownloadUrlFromGithub(out var downloadUrl, out latestVersion, out sha256);
+                GetLatestVersionAndDownloadUrlFromGithub(out _, out latestVersion, out sha256);
             else
                 GetDownloadUrlFromMirror(localVersion, "MFAAvalonia", CDK(), out _, out latestVersion, out sha256, isUI: true, onlyCheck: true);
 
@@ -750,11 +750,20 @@ public static class VersionChecker
             {
                 if (File.Exists(targetUpdaterPath) && File.Exists(sourceUpdaterPath))
                 {
+                    var targetVersion = GetVersionFromCommand(targetUpdaterPath);
+                    if (string.IsNullOrWhiteSpace(targetVersion))
+                    {
+                        var targetVersionInfo = FileVersionInfo.GetVersionInfo(targetUpdaterPath);
+                        targetVersion = targetVersionInfo.FileVersion;
+                    }
+                    var sourceVersion = GetVersionFromCommand(sourceUpdaterPath);
 
-                    var targetVersionInfo = FileVersionInfo.GetVersionInfo(targetUpdaterPath);
-                    var sourceVersionInfo = FileVersionInfo.GetVersionInfo(sourceUpdaterPath);
-                    var targetVersion = targetVersionInfo.FileVersion; // 或 ProductVersion
-                    var sourceVersion = sourceVersionInfo.FileVersion;
+                    if (string.IsNullOrWhiteSpace(sourceVersion))
+                    {
+                        var sourceVersionInfo = FileVersionInfo.GetVersionInfo(sourceUpdaterPath);
+                        sourceVersion = sourceVersionInfo.FileVersion;
+                    }
+                    
                     LoggerHelper.Info("Target Updater Version: " + targetVersion);
                     LoggerHelper.Info("Source Updater Version: " + sourceVersion);
                     // 使用Version类比较版本
@@ -833,6 +842,32 @@ public static class VersionChecker
                 });
                 shouldShowToast = false;
             }
+        }
+    }
+
+    private static string GetVersionFromCommand(string filePath)
+    {
+        try
+        {
+            var process = new Process
+            {
+                StartInfo = new ProcessStartInfo
+                {
+                    FileName = filePath,
+                    Arguments = "--version",
+                    RedirectStandardOutput = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true
+                }
+            };
+            process.Start();
+            string version = process.StandardOutput.ReadToEnd().Trim();
+            process.WaitForExit();
+            return version.StartsWith("v", StringComparison.OrdinalIgnoreCase) ? version : "";
+        }
+        catch
+        {
+            return null;
         }
     }
 
@@ -1223,13 +1258,118 @@ public static class VersionChecker
 
         return digest;
     }
+ 
+// 标准化操作系统标识
+    private static (string os, string family) GetNormalizedOSInfo()
+    {
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            return ("win", "windows");
+        
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+            // macOS/OS X 既属于"osx"具体系统，也属于"unix"家族
+            return ("osx", "unix");
+        
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+            // Linux 属于"linux"具体系统，也属于"unix"家族
+            return ("linux", "unix");
+        
+        // 其他类Unix系统（如FreeBSD）
+        if (IsUnixLike())
+            return ("unix", "unix");
+        
+        return ("unknown", "unknown");
+    }
+
+    // 辅助判断：是否为类Unix系统（非Windows）
+    private static bool IsUnixLike()
+    {
+        var platform = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) 
+            ? "windows" 
+            : RuntimeInformation.IsOSPlatform(OSPlatform.OSX) 
+                ? "osx" 
+                : RuntimeInformation.IsOSPlatform(OSPlatform.Linux) 
+                    ? "linux" 
+                    : "unknown";
+        return platform != "windows" && platform != "unknown";
+    }
+
+    // 2. 修正架构归一化（保持不变，确保兼容arm64/x64等）
+    private static string GetNormalizedArchitecture()
+    {
+        var arch = RuntimeInformation.ProcessArchitecture;
+        return arch switch
+        {
+            Architecture.X64 => "x64",
+            Architecture.Arm64 => "arm64",
+            Architecture.X86 => "x86",
+            Architecture.Arm => "arm",
+            _ => "unknown"
+        };
+    }
+
+    // 3. 优化资产优先级计算（支持多系统标识）
+    private static int GetAssetPriority(string fileName, string targetOS, string targetFamily, string targetArch)
+    {
+        if (string.IsNullOrEmpty(fileName)) return 0;
+        fileName = fileName.ToLower();
+
+        // 定义系统标识映射（支持别名）
+        var osAliases = new Dictionary<string, List<string>>
+        {
+            {"osx", new List<string> {"osx", "macos", "mac"}}, // osx的别名
+            {"linux", new List<string> {"linux", "debian", "ubuntu"}}, // linux的别名
+            {"unix", new List<string> {"unix", "bsd", "freebsd"}} // unix家族的别名
+        };
+
+        // 优先级规则：具体系统完全匹配 > 系统别名完全匹配 > 家族匹配 > 仅架构匹配
+        var patterns = new List<(string pattern, int priority)>
+        {
+            // 1. 具体系统+架构完全匹配（如 osx-arm64、macos-x64）
+            (GetPattern(targetOS, targetArch, osAliases), 100),
+            // 2. 具体系统匹配（不限制架构，如 osx-*）
+            (GetPattern(targetOS, "*", osAliases), 80),
+            // 3. 家族+架构匹配（如 unix-arm64）
+            (GetPattern(targetFamily, targetArch, osAliases), 60),
+            // 4. 家族匹配（如 unix-*）
+            (GetPattern(targetFamily, "*", osAliases), 40),
+            // 5. 仅架构匹配（如 *-arm64）
+            ($"-{targetArch}", 20)
+        };
+
+        // 遍历规则计算优先级
+        foreach (var (pattern, priority) in patterns)
+        {
+            if (pattern != null && Regex.IsMatch(fileName, pattern, RegexOptions.IgnoreCase))
+            {
+                return priority;
+            }
+        }
+
+        return 0;
+    }
+
+    // 辅助方法：生成匹配模式（支持别名）
+    private static string GetPattern(string osOrFamily, string arch, Dictionary<string, List<string>> aliases)
+    {
+        if (aliases.TryGetValue(osOrFamily, out var aliasList))
+        {
+            var allIdentifiers = new HashSet<string>(aliasList) { osOrFamily }; 
+            string identifiersPattern = string.Join("|", allIdentifiers);
+            return $"({identifiersPattern})-{arch}";
+        }
+        // 未知系统/家族直接返回原始模式
+        return $"{osOrFamily}-{arch}";
+    }
+
     private static void GetDownloadUrlFromGitHubRelease(string version, string owner, string repo, out string downloadUrl, out string sha256)
     {
-        // 获取当前运行环境信息
-        var osPlatform = GetNormalizedOSPlatform();
-        var cpuArch = GetNormalizedArchitecture();
         downloadUrl = string.Empty;
         sha256 = string.Empty;
+        // 获取系统信息（具体系统 + 家族）
+        var (osPlatform, osFamily) = GetNormalizedOSInfo();
+        var cpuArch = GetNormalizedArchitecture();
+        LoggerHelper.Info($"目标系统: {osPlatform}（家族: {osFamily}），架构: {cpuArch}");
+
         var releaseUrl = $"https://api.github.com/repos/{owner}/{repo}/releases/tags/{version}";
         using var httpClient = CreateHttpClientWithProxy();
         httpClient.DefaultRequestHeaders.UserAgent.TryParseAdd("MFAComponentUpdater/1.0");
@@ -1259,17 +1399,21 @@ public static class VersionChecker
                             Name = asset["name"]?.ToString().ToLower(),
                             Sha256 = ExtractSha256FromDigest(asset["digest"]?.ToString())
                         })
-                        .OrderByDescending(a => GetAssetPriority(a.Name, osPlatform, cpuArch))
+                        // 使用新的优先级计算方法（传入系统家族）
+                        .OrderByDescending(a => GetAssetPriority(a.Name, osPlatform, osFamily, cpuArch))
                         .ToList();
-                    var orderAsset = orderedAssets.FirstOrDefault();
-                    downloadUrl = orderAsset?.Url ?? string.Empty;
-                    sha256 = orderAsset?.Sha256 ?? string.Empty;
+
+                    // 输出调试日志（查看每个资产的优先级）
+                    foreach (var asset in orderedAssets)
+                    {
+                        int priority = GetAssetPriority(asset.Name, osPlatform, osFamily, cpuArch);
+                        LoggerHelper.Info($"资产 {asset.Name} 优先级: {priority}");
+                    }
+
+                    var bestAsset = orderedAssets.FirstOrDefault(a => a.Url != null);
+                    downloadUrl = bestAsset?.Url ?? string.Empty;
+                    sha256 = bestAsset?.Sha256 ?? string.Empty;
                 }
-            }
-            else if (response.StatusCode == HttpStatusCode.Forbidden && response.ReasonPhrase.Contains("403"))
-            {
-                LoggerHelper.Error("GitHub API速率限制已超出，请稍后再试。");
-                throw new Exception("GitHub API速率限制已超出，请稍后再试。");
             }
             else
             {
@@ -1280,65 +1424,10 @@ public static class VersionChecker
         catch (Exception e)
         {
             LoggerHelper.Error($"处理GitHub响应时发生错误: {e.Message}");
-            throw new Exception($"{e.Message}");
+            throw;
         }
     }
-
-// 标准化操作系统标识
-    private static string GetNormalizedOSPlatform()
-    {
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-            return "win";
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX) || OperatingSystem.IsMacOS() || OperatingSystem.IsIOS())
-            return "macos";
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
-            return "linux";
-        return "unknown";
-    }
-
-// 标准化硬件架构标识
-    private static string GetNormalizedArchitecture()
-    {
-        var arch = RuntimeInformation.ProcessArchitecture.ToString().ToLower();
-        return arch switch
-        {
-            "x64" => "x86_64", // 统一x64和amd64标识
-            "arm64" => "arm64",
-            _ => "unknown"
-        };
-    }
-
-// 资源优先级评分算法
-    private static int GetAssetPriority(string fileName, string targetOS, string targetArch)
-    {
-        if (string.IsNullOrEmpty(fileName)) return 0;
-
-        var patterns = new Dictionary<string, int>
-        {
-            // 完全匹配最高优先级（如：win-x86_64）
-            {
-                $"{targetOS}-{targetArch}", 100
-            },
-
-            // 次优匹配（如：win-amd64或win-x64）
-            {
-                $"{targetOS}-(amd64|x64)", 80
-            },
-            {
-                $"{targetOS}", 60
-            }, // 仅匹配操作系统
-            {
-                $"{targetArch}", 40
-            } // 仅匹配架构
-        };
-
-        foreach (var pattern in patterns)
-        {
-            if (Regex.IsMatch(fileName, pattern.Key, RegexOptions.IgnoreCase))
-                return pattern.Value;
-        }
-        return 0;
-    }
+    
 
     private static void GetDownloadUrlFromMirror(string version,
         string resId,
