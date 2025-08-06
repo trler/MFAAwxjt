@@ -20,7 +20,7 @@ commit_parsers = [
     { message = "^refactor\\(clippy\\)", skip = true },
     { message = "^refactor", group = "重构 | Refactor" },
     { message = "^style", group = "样式 | Style" },
-    { message = "^test", group = "测试 | Test" },
+    { message = "^test", skip = true },
 	{ message = "^revert", group = "回滚 | Revert" },
     { message = "^chore\\(release\\): prepare for", skip = true },
     { message = "^chore\\(deps.*\\)", skip = true },
