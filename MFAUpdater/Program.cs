@@ -1,10 +1,8 @@
 ﻿using System;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
-using System.IO;
 using System.Reflection;
 using System.Text;
-using System.Threading;
 
 public class Program
 {
@@ -16,13 +14,27 @@ public class Program
             Directory.CreateDirectory(logDir);
         File.WriteAllText(Path.Combine(logDir, "updater_log.txt"), LogBuilder.ToString());
     }
+    
+    static Version GetCurrentVersion()
+    {
+        return Assembly.GetExecutingAssembly().GetName().Version ?? new Version("0.0.0.0");
+    }
+    
     static void Main(string[] args)
     {
-        Log("MFAUpdater Version: v" + Assembly.GetExecutingAssembly().GetName().Version);
+        Version version = GetCurrentVersion();
+        if (args.Length > 0 && args[0].Equals("--version", StringComparison.OrdinalIgnoreCase))
+        {
+            Console.WriteLine(version); // 直接输出（不写入日志，便于外部程序解析）
+            return; 
+        }
+        Log("MFAUpdater Version: v" + version);
         Log("Command Line Arguments: " + string.Join(", ", args));
 
+        
         try
-        {
+        {        
+
             ValidateArguments(args);
             int mainProcessId = ParseMainProcessId(args);
             WaitForMainProcessExit(mainProcessId);
