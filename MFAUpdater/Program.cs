@@ -22,6 +22,7 @@ public class Program
     
     static void Main(string[] args)
     {
+        Directory.SetCurrentDirectory(AppContext.BaseDirectory);
         Version version = GetCurrentVersion();
         if (args.Length > 0 && args[0].Equals("--version", StringComparison.OrdinalIgnoreCase))
         {
