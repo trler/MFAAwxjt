@@ -820,7 +820,7 @@
         <value>显示</value>
     </data>
     <data name="ShowDisclaimerNoMore" xml:space="preserve">
-        <value>下次不再提示</value>
+        <value>下次更新前不再提示</value>
     </data>
     <data name="ShowHitDraw" xml:space="preserve">
         <value>显示节点命中截图 (用于调试)</value>

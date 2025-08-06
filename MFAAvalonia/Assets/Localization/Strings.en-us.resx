@@ -813,7 +813,7 @@
         <value>Show</value>
     </data>
     <data name="ShowDisclaimerNoMore" xml:space="preserve">
-        <value>Don't show again</value>
+        <value>Do not prompt again until the next update</value>
     </data>
     <data name="ShowHitDraw" xml:space="preserve">
         <value>Display node hit screenshot (for debugging)</value>
