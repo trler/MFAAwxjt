@@ -763,7 +763,7 @@ public static class VersionChecker
                         var sourceVersionInfo = FileVersionInfo.GetVersionInfo(sourceUpdaterPath);
                         sourceVersion = sourceVersionInfo.FileVersion;
                     }
-                    
+
                     LoggerHelper.Info("Target Updater Version: " + targetVersion);
                     LoggerHelper.Info("Source Updater Version: " + sourceVersion);
                     // 使用Version类比较版本
@@ -849,25 +849,27 @@ public static class VersionChecker
     {
         try
         {
-            var process = new Process
+            using var process = Process.Start(new ProcessStartInfo
             {
-                StartInfo = new ProcessStartInfo
-                {
-                    FileName = filePath,
-                    Arguments = "--version",
-                    RedirectStandardOutput = true,
-                    UseShellExecute = false,
-                    CreateNoWindow = true
-                }
-            };
-            process.Start();
-            string version = process.StandardOutput.ReadToEnd().Trim();
-            process.WaitForExit();
-            return version.StartsWith("v", StringComparison.OrdinalIgnoreCase) ? version : "";
+                WorkingDirectory = AppContext.BaseDirectory,
+                FileName = filePath,
+                Arguments = "--version",
+                RedirectStandardOutput = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            });
+
+            if (process != null)
+            {
+                process.WaitForExit();
+                var output = process.StandardOutput.ReadToEnd().Trim();
+                return Version.TryParse(output, out var version) ? version.ToString() : "";
+            }
+            return "";
         }
         catch
         {
-            return null;
+            return "";
         }
     }
 
@@ -949,7 +951,7 @@ public static class VersionChecker
         }
 
         // 获取当前进程PID，传递给更新器（关键修改）
-        int currentProcessId = Process.GetCurrentProcess().Id;
+        var currentProcessId = Process.GetCurrentProcess().Id;
 
         var psi = new ProcessStartInfo
         {
@@ -1258,37 +1260,37 @@ public static class VersionChecker
 
         return digest;
     }
- 
+
 // 标准化操作系统标识
     private static (string os, string family) GetNormalizedOSInfo()
     {
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             return ("win", "windows");
-        
+
         if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
             // macOS/OS X 既属于"osx"具体系统，也属于"unix"家族
             return ("osx", "unix");
-        
+
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
             // Linux 属于"linux"具体系统，也属于"unix"家族
             return ("linux", "unix");
-        
+
         // 其他类Unix系统（如FreeBSD）
         if (IsUnixLike())
             return ("unix", "unix");
-        
+
         return ("unknown", "unknown");
     }
 
     // 辅助判断：是否为类Unix系统（非Windows）
     private static bool IsUnixLike()
     {
-        var platform = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) 
-            ? "windows" 
-            : RuntimeInformation.IsOSPlatform(OSPlatform.OSX) 
-                ? "osx" 
-                : RuntimeInformation.IsOSPlatform(OSPlatform.Linux) 
-                    ? "linux" 
+        var platform = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+            ? "windows"
+            : RuntimeInformation.IsOSPlatform(OSPlatform.OSX)
+                ? "osx"
+                : RuntimeInformation.IsOSPlatform(OSPlatform.Linux)
+                    ? "linux"
                     : "unknown";
         return platform != "windows" && platform != "unknown";
     }
@@ -1316,9 +1318,30 @@ public static class VersionChecker
         // 定义系统标识映射（支持别名）
         var osAliases = new Dictionary<string, List<string>>
         {
-            {"osx", new List<string> {"osx", "macos", "mac"}}, // osx的别名
-            {"linux", new List<string> {"linux", "debian", "ubuntu"}}, // linux的别名
-            {"unix", new List<string> {"unix", "bsd", "freebsd"}} // unix家族的别名
+            {
+                "osx", new List<string>
+                {
+                    "osx",
+                    "macos",
+                    "mac"
+                }
+            }, // osx的别名
+            {
+                "linux", new List<string>
+                {
+                    "linux",
+                    "debian",
+                    "ubuntu"
+                }
+            }, // linux的别名
+            {
+                "unix", new List<string>
+                {
+                    "unix",
+                    "bsd",
+                    "freebsd"
+                }
+            } // unix家族的别名
         };
 
         // 优先级规则：具体系统完全匹配 > 系统别名完全匹配 > 家族匹配 > 仅架构匹配
@@ -1353,7 +1376,10 @@ public static class VersionChecker
     {
         if (aliases.TryGetValue(osOrFamily, out var aliasList))
         {
-            var allIdentifiers = new HashSet<string>(aliasList) { osOrFamily }; 
+            var allIdentifiers = new HashSet<string>(aliasList)
+            {
+                osOrFamily
+            };
             string identifiersPattern = string.Join("|", allIdentifiers);
             return $"({identifiersPattern})-{arch}";
         }
@@ -1427,7 +1453,7 @@ public static class VersionChecker
             throw;
         }
     }
-    
+
 
     private static void GetDownloadUrlFromMirror(string version,
         string resId,
