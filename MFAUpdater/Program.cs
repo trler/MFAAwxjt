@@ -6,7 +6,8 @@ using System.Text;
 
 public class Program
 {
-    static StringBuilder LogBuilder = new ();
+    private const int InitDelay = 2500;
+    static StringBuilder LogBuilder = new();
     static void SaveLog()
     {
         try
@@ -30,22 +31,22 @@ public class Program
             Console.WriteLine($"日志保存失败: {ex.Message}");
         }
     }
-    
+
     static Version GetCurrentVersion()
     {
         return Assembly.GetExecutingAssembly().GetName().Version ?? new Version("1.0.8.0");
     }
-    
+
     static void Main(string[] args)
     {
         try
-        {        
+        {
             Directory.SetCurrentDirectory(AppContext.BaseDirectory);
             Version version = GetCurrentVersion();
             if (args.Length > 0 && args[0].Equals("--version", StringComparison.OrdinalIgnoreCase))
             {
                 Console.WriteLine(version); // 直接输出（不写入日志，便于外部程序解析）
-                return; 
+                return;
             }
             Log("MFAUpdater Version: v" + version);
             Log("Command Line Arguments: " + string.Join(", ", args));
@@ -78,10 +79,11 @@ public class Program
     /// </summary>
     private static void ValidateArguments(string[] args)
     {
-        if (args.Length < 3 || args.Length > 5)
+        if ((args.Length < 2 || args.Length > 4) && (args.Length < 3 || args.Length > 5))
         {
             Log("参数格式错误，正确用法:");
-            Log("MFAUpdater [源路径] [目标路径] [原程序名(可选)] [新程序名(可选)] [主程序PID]");
+            Log("新格式（含主程序PID）: MFAUpdater [源路径] [目标路径] [原程序名(可选)] [新程序名(可选)] [主程序PID]");
+            Log("老格式（固定延迟）: MFAUpdater [源路径] [目标路径] [程序名(可选)]");
             SaveLog();
             Environment.Exit(1);
         }
@@ -92,23 +94,30 @@ public class Program
     /// </summary>
     private static int ParseMainProcessId(string[] args)
     {
-        try
+        // 判断是否包含PID参数（新格式：最后一个参数为数字）
+        if (args.Length >= 3)
         {
-            // 移除参数前后的引号（兼容原有EscapeArgument处理）
-            string pidStr = args[^1].Trim('"');
-            if (int.TryParse(pidStr, out int pid))
+            try
             {
-                Log($"解析到主程序PID: {pid}");
-                return pid;
+                string lastArg = args[^1].Trim('"');
+                if (int.TryParse(lastArg, out int pid))
+                {
+                    Log($"解析到主程序PID: {pid}");
+                    return pid; // 返回有效PID
+                }
+                // 最后一个参数不是数字 → 视为老格式（无PID）
+                Log("未检测到有效的PID参数，将使用固定延迟等待");
+                return -1;
             }
-            throw new FormatException($"PID格式错误: {pidStr}");
+            catch (Exception ex)
+            {
+                Log($"PID解析失败，将使用固定延迟等待: {ex.Message}");
+                return -1;
+            }
         }
-        catch (Exception ex)
-        {
-            Log($"解析主程序PID失败: {ex.Message}");
-            Environment.Exit(2);
-            return -1; //  unreachable
-        }
+        // 参数数量不足 → 老格式
+        Log("未提供PID参数，将使用固定延迟等待");
+        return -1;
     }
 
     /// <summary>
@@ -116,38 +125,49 @@ public class Program
     /// </summary>
     private static void WaitForMainProcessExit(int mainProcessId)
     {
-        try
+        if (mainProcessId != -1)
         {
-            Log($"开始等待主程序退出 (PID: {mainProcessId})");
-            var mainProcess = Process.GetProcessById(mainProcessId);
+            // 新逻辑：等待指定PID进程退出
+            try
+            {
+                Log($"开始等待主程序退出 (PID: {mainProcessId})");
+                var mainProcess = Process.GetProcessById(mainProcessId);
 
-            if (mainProcess.HasExited)
-            {
-                Log("主程序已退出");
-                return;
-            }
+                if (mainProcess.HasExited)
+                {
+                    Log("主程序已退出");
+                    return;
+                }
 
-            // 最多等待30秒，避免无限阻塞
-            var exited = mainProcess.WaitForExit(30000);
-            if (exited)
-            {
-                Log("主程序已成功退出");
+                // 最多等待30秒
+                var exited = mainProcess.WaitForExit(5000);
+                if (exited)
+                {
+                    Log("主程序已成功退出");
+                }
+                else
+                {
+                    Log("警告：主程序在5秒内未正常退出，尝试强制继续");
+                }
             }
-            else
+            catch (ArgumentException)
             {
-                Log("警告：主程序在30秒内未正常退出，尝试强制继续");
+                Log("主程序已退出（进程未找到）");
+            }
+            catch (Exception ex)
+            {
+                Log($"等待主程序退出时发生错误: {ex.Message}");
             }
         }
-        catch (ArgumentException)
+        else
         {
-            // 进程不存在（已退出）
-            Log("主程序已退出（进程未找到）");
-        }
-        catch (Exception ex)
-        {
-            Log($"等待主程序退出时发生错误: {ex.Message}");
+            // 老逻辑：固定延迟等待
+            Log($"使用固定延迟等待 {InitDelay} 毫秒...");
+            System.Threading.Thread.Sleep(InitDelay);
+            Log("固定延迟等待结束");
         }
     }
+
 
     /// <summary>
     /// 处理文件复制、目录迁移等核心操作（排除PID参数）
@@ -156,7 +176,11 @@ public class Program
     {
         try
         {
-            // 解析业务参数（排除最后一个PID参数）
+            // 判断是否包含PID参数（影响业务参数索引）
+            bool hasPid = args.Length >= 3 && int.TryParse(args[^1].Trim('"'), out _);
+            int pidOffset = hasPid ? 1 : 0; // 有PID时业务参数少1个（最后一个是PID）
+
+            // 解析源路径和目标路径（索引不受PID影响）
             string source = Path.GetFullPath(args[0].Replace("\\\"", "\"").Replace("\"", ""))
                 .Replace('\\', Path.DirectorySeparatorChar);
             string dest = Path.GetFullPath(args[1].Replace("\\\"", "\"").Replace("\"", ""))
@@ -165,6 +189,7 @@ public class Program
             Log($"源路径: {source}");
             Log($"目标路径: {dest}");
 
+            // 处理文件/目录迁移（逻辑不变）
             if (File.Exists(source))
             {
                 HandleFileTransfer(source, dest);
@@ -178,18 +203,18 @@ public class Program
                 throw new FileNotFoundException($"源路径不存在: {source}");
             }
 
-            // 处理程序重命名（当参数包含oldName和newName时）
-            if (args.Length >= 4)
+            // 处理程序重命名（有PID时参数索引+1）
+            if (args.Length - pidOffset >= 4) // 原参数长度>=4（含oldName和newName）
             {
                 string oldName = args[2].Replace("\\\"", "\"").Replace("\"", "");
-                string newName = args[3].Replace("\\\"", "\"").Replace("\"", "");
+                string newName = args[3 - pidOffset].Replace("\\\"", "\"").Replace("\"", ""); // 适配PID偏移
                 HandleAppRename(dest, oldName, newName);
             }
 
-            // 处理程序启动（当参数包含启动程序名时）
-            if (args.Length == 3)
+            // 处理程序启动（有PID时参数索引+1）
+            if (args.Length - pidOffset == 3) // 原参数长度==3（含启动程序名）
             {
-                string appName = args[2].Replace("\\\"", "\"").Replace("\"", "");
+                string appName = args[2 - pidOffset].Replace("\\\"", "\"").Replace("\"", ""); // 适配PID偏移
                 StartCrossPlatformProcess(appName);
             }
 
