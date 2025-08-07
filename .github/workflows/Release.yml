@@ -94,12 +94,14 @@ jobs:
             arch: x64
             compress_cmd: "zip -r -9"
             ext: zip
-
+            is_macos: true
+            
           - os: macos-latest
             platform: osx
             arch: arm64
             compress_cmd: "zip -r -9"
             ext: zip
+            is_macos: true
 
           - os: windows-latest
             platform: win
@@ -132,6 +134,23 @@ jobs:
       - name: Build Solution
         run: dotnet publish -c Release -r ${{ matrix.platform }}-${{ matrix.arch }}
 
+      - name: Sign macOS App with Adhoc Certificate
+        if: ${{ matrix.is_macos == true }} 
+        run: |
+          # 进入发布目录
+          PUBLISH_DIR="bin/AnyCPU/Release/${{ matrix.platform }}-${{ matrix.arch }}/publish"
+          cd $PUBLISH_DIR
+            
+          # 对主程序和相关可执行文件进行adhoc签名（-s - 表示使用adhoc签名）
+          # 签名所有可执行文件（包括应用程序和更新器）
+          find . -type f -name "MFAAvalonia*" -exec codesign -s - --force --deep {} \;
+          find . -type f -name "MFAUpdater*" -exec codesign -s - --force --deep {} \;
+            
+          # 验证签名是否成功
+          echo "验证签名结果："
+          find . -type f -name "MFAAvalonia*" -exec codesign -v {} \;
+        shell: bash
+        
       - name: Unified ZIP Packaging
         shell: bash
         run: |
