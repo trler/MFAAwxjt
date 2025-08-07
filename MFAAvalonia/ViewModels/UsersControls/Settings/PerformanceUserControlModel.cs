@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using MaaFramework.Binding;
 using MFAAvalonia.Configuration;
 using MFAAvalonia.Extensions.MaaFW;
+using MFAAvalonia.Helper;
 using MFAAvalonia.Helper.Converters;
 using MFAAvalonia.ViewModels.Other;
 using Newtonsoft.Json;
@@ -29,7 +30,7 @@ public partial class PerformanceUserControlModel : ViewModelBase
 
     public class DirectMLAdapterInfo
     {
-        public int AdapterId { get; set; } = -1; // 与EnumAdapters1索引一致
+        public int AdapterId { get; set; }// 与EnumAdapters1索引一致
         public string AdapterName { get; set; }
         public bool IsDirectMLCompatible { get; set; }
     }
@@ -167,17 +168,27 @@ public partial class PerformanceUserControlModel : ViewModelBase
 
     public void ChangeGpuOption(MaaResource? resource, GpuDeviceOption? option)
     {
+        LoggerHelper.Info($"MaaResource: {resource != null}");
+        LoggerHelper.Info($"GpuDeviceOption: {option != null}");
         if (option != null && resource != null)
         {
             if (option.IsDirectML)
             {
-                resource.SetOption_InferenceExecutionProvider(InferenceExecutionProvider.DirectML);
-                resource.SetOption_InferenceDevice(option.Adapter.AdapterId);
+                var v1 = resource.SetOption_InferenceExecutionProvider(InferenceExecutionProvider.DirectML);
+                var v2 = resource.SetOption_InferenceDevice(option.Adapter.AdapterId);
+                LoggerHelper.Info($"{"使用DirectML" + (v1 && v2 ? "成功" : "失败")}");
+            }
+            else if (option.Device == InferenceDevice.CPU)
+            {
+                var v1 = resource.SetOption_InferenceExecutionProvider(InferenceExecutionProvider.CPU);
+                var v2 = resource.SetOption_InferenceDevice(option.Device);
+                LoggerHelper.Info($"{"使用CPU" + (v1 && v2 ? "成功" : "失败")}");
             }
             else
             {
-                resource.SetOption_InferenceExecutionProvider(InferenceExecutionProvider.Auto);
-                resource.SetOption_InferenceDevice(option.Device);
+                var v1 = resource.SetOption_InferenceExecutionProvider(InferenceExecutionProvider.Auto);
+                var v2 = resource.SetOption_InferenceDevice(option.Device);
+                LoggerHelper.Info($"{"使用GPU" + (v1 && v2 ? "成功" : "失败")}");
             }
         }
     }

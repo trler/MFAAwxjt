@@ -163,7 +163,7 @@ public class Program
         {
             // 老逻辑：固定延迟等待
             Log($"使用固定延迟等待 {InitDelay} 毫秒...");
-            System.Threading.Thread.Sleep(InitDelay);
+            Thread.Sleep(InitDelay);
             Log("固定延迟等待结束");
         }
     }
