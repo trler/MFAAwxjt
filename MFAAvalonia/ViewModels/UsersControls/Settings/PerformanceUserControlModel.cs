@@ -24,7 +24,8 @@ public partial class PerformanceUserControlModel : ViewModelBase
         GpuOption = GpuOptions[GpuIndex].Other;
         base.Initialize();
     }
-    [ObservableProperty] public bool _isDirectMLSupported = OperatingSystem.IsWindows();
+    //禁用切换GPU
+    [ObservableProperty] public bool _isDirectMLSupported = false;
 
     [ObservableProperty] private bool _useDirectML = ConfigurationManager.Current.GetValue(ConfigurationKeys.UseDirectML, false);
 
