@@ -1295,27 +1295,53 @@ public static class VersionChecker
         return platform != "windows" && platform != "unknown";
     }
 
-    // 2. 修正架构归一化（保持不变，确保兼容arm64/x64等）
     private static string GetNormalizedArchitecture()
     {
-        var arch = RuntimeInformation.ProcessArchitecture;
-        return arch switch
+        return RuntimeInformation.ProcessArchitecture switch
         {
-            Architecture.X64 => "x64",
-            Architecture.Arm64 => "arm64",
+            Architecture.X64 => "x64",       // 保持x64，不强制转为x86_64
+            Architecture.Arm64 => "arm64",   // 保持arm64，不强制转为aarch64
             Architecture.X86 => "x86",
             Architecture.Arm => "arm",
             _ => "unknown"
         };
     }
+    private static readonly Dictionary<string, List<string>> ArchitectureAliases = new()
+    {
+        {
+            "x64", new List<string>
+            {
+                "x64",
+                "x86_64"
+            }
+        }, // x64支持x86_64别名
+        {
+            "arm64", new List<string>
+            {
+                "arm64",
+                "aarch64"
+            }
+        }, // arm64支持aarch64别名
+        {
+            "x86", new List<string>
+            {
+                "x86"
+            }
+        }, // x86保持默认
+        {
+            "arm", new List<string>
+            {
+                "arm"
+            }
+        } // arm保持默认
+    };
 
-    // 3. 优化资产优先级计算（支持多系统标识）
     private static int GetAssetPriority(string fileName, string targetOS, string targetFamily, string targetArch)
     {
         if (string.IsNullOrEmpty(fileName)) return 0;
         fileName = fileName.ToLower();
 
-        // 定义系统标识映射（支持别名）
+        // 系统别名映射（保留原有定义）
         var osAliases = new Dictionary<string, List<string>>
         {
             {
@@ -1325,7 +1351,7 @@ public static class VersionChecker
                     "macos",
                     "mac"
                 }
-            }, // osx的别名
+            },
             {
                 "linux", new List<string>
                 {
@@ -1333,7 +1359,7 @@ public static class VersionChecker
                     "debian",
                     "ubuntu"
                 }
-            }, // linux的别名
+            },
             {
                 "unix", new List<string>
                 {
@@ -1341,22 +1367,34 @@ public static class VersionChecker
                     "bsd",
                     "freebsd"
                 }
-            } // unix家族的别名
+            },
+            {
+                "win", new List<string>
+                {
+                    "win",
+                    "windows"
+                } // 补充Windows别名，避免遗漏
+            }
         };
 
-        // 优先级规则：具体系统完全匹配 > 系统别名完全匹配 > 家族匹配 > 仅架构匹配
+        // 处理架构别名：将目标架构转为包含所有别名的正则模式（如x64→x64|x86_64）
+        string archWithAliases = ArchitectureAliases.TryGetValue(targetArch, out var archAliases)
+            ? string.Join("|", archAliases)
+            : targetArch;
+
+        // 优先级规则：全部通过GetPattern生成，确保复用逻辑
         var patterns = new List<(string pattern, int priority)>
         {
-            // 1. 具体系统+架构完全匹配（如 osx-arm64、macos-x64）
-            (GetPattern(targetOS, targetArch, osAliases), 100),
-            // 2. 具体系统匹配（不限制架构，如 osx-*）
-            (GetPattern(targetOS, "*", osAliases), 80),
-            // 3. 家族+架构匹配（如 unix-arm64）
-            (GetPattern(targetFamily, targetArch, osAliases), 60),
-            // 4. 家族匹配（如 unix-*）
-            (GetPattern(targetFamily, "*", osAliases), 40),
-            // 5. 仅架构匹配（如 *-arm64）
-            ($"-{targetArch}", 20)
+            // 1. 具体系统+架构（含别名）完全匹配（如win-x64、win-x86_64）
+            (GetPattern(targetOS, archWithAliases, osAliases), 100),
+            // 2. 具体系统匹配（任意架构，用.*表示通配符）
+            (GetPattern(targetOS, ".*", osAliases), 80),
+            // 3. 家族+架构（含别名）匹配（如unix-arm64、unix-aarch64）
+            (GetPattern(targetFamily, archWithAliases, osAliases), 60),
+            // 4. 家族匹配（任意架构，用.*表示通配符）
+            (GetPattern(targetFamily, ".*", osAliases), 40),
+            // 5. 仅架构（含别名）匹配（如-x64、-x86_64）
+            ($"-(?:{archWithAliases})", 20)
         };
 
         // 遍历规则计算优先级
