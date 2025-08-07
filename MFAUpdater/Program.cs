@@ -9,32 +9,46 @@ public class Program
     static StringBuilder LogBuilder = new ();
     static void SaveLog()
     {
-        string logDir = Path.Combine(AppContext.BaseDirectory, "logs");
-        if (!Directory.Exists(logDir))
-            Directory.CreateDirectory(logDir);
-        File.WriteAllText(Path.Combine(logDir, "updater_log.txt"), LogBuilder.ToString());
+        try
+        {
+            var logDir = Path.Combine(AppContext.BaseDirectory, "logs");
+            // 检查目录是否可写
+            if (!Directory.Exists(logDir))
+            {
+                Directory.CreateDirectory(logDir);
+            }
+            // 测试文件写入权限
+            var testFile = Path.Combine(logDir, ".test");
+            File.WriteAllText(testFile, "test");
+            File.Delete(testFile);
+
+            // 真正写入日志
+            File.WriteAllText(Path.Combine(logDir, "updater_log.txt"), LogBuilder.ToString());
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"日志保存失败: {ex.Message}");
+        }
     }
     
     static Version GetCurrentVersion()
     {
-        return Assembly.GetExecutingAssembly().GetName().Version ?? new Version("0.0.0.0");
+        return Assembly.GetExecutingAssembly().GetName().Version ?? new Version("1.0.8.0");
     }
     
     static void Main(string[] args)
     {
-        Directory.SetCurrentDirectory(AppContext.BaseDirectory);
-        Version version = GetCurrentVersion();
-        if (args.Length > 0 && args[0].Equals("--version", StringComparison.OrdinalIgnoreCase))
-        {
-            Console.WriteLine(version); // 直接输出（不写入日志，便于外部程序解析）
-            return; 
-        }
-        Log("MFAUpdater Version: v" + version);
-        Log("Command Line Arguments: " + string.Join(", ", args));
-
-        
         try
         {        
+            Directory.SetCurrentDirectory(AppContext.BaseDirectory);
+            Version version = GetCurrentVersion();
+            if (args.Length > 0 && args[0].Equals("--version", StringComparison.OrdinalIgnoreCase))
+            {
+                Console.WriteLine(version); // 直接输出（不写入日志，便于外部程序解析）
+                return; 
+            }
+            Log("MFAUpdater Version: v" + version);
+            Log("Command Line Arguments: " + string.Join(", ", args));
 
             ValidateArguments(args);
             int mainProcessId = ParseMainProcessId(args);
@@ -68,6 +82,7 @@ public class Program
         {
             Log("参数格式错误，正确用法:");
             Log("MFAUpdater [源路径] [目标路径] [原程序名(可选)] [新程序名(可选)] [主程序PID]");
+            SaveLog();
             Environment.Exit(1);
         }
     }
