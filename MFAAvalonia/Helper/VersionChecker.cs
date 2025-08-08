@@ -849,6 +849,7 @@ public static class VersionChecker
     {
         try
         {
+            LoggerHelper.Info($"Target Updater Path: {filePath}, Exists: {File.Exists(filePath)}");
             using var process = Process.Start(new ProcessStartInfo
             {
                 WorkingDirectory = AppContext.BaseDirectory,
@@ -858,11 +859,12 @@ public static class VersionChecker
                 UseShellExecute = false,
                 CreateNoWindow = true
             });
-
+            
             if (process != null)
             {
                 process.WaitForExit();
                 var output = process.StandardOutput.ReadToEnd().Trim();
+                LoggerHelper.Info("获取到的版本信息: " + output);
                 return Version.TryParse(output, out var version) ? version.ToString() : "";
             }
             return "";
