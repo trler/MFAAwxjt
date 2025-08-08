@@ -1469,15 +1469,12 @@ public static class VersionChecker
     {
         if (aliases.TryGetValue(osOrFamily, out var aliasList))
         {
-            var allIdentifiers = new HashSet<string>(aliasList)
-            {
-                osOrFamily
-            };
-            string identifiersPattern = string.Join("|", allIdentifiers);
-            return $"({identifiersPattern})-{arch}";
+            var allIdentifiers = new HashSet<string>(aliasList) { osOrFamily };
+            var identifiersPattern = string.Join("|", allIdentifiers);
+            // 关键：用 \b 或 ^ 限定系统标识在开头或 - 之后，避免跨系统匹配
+            return $@"\b(?:{identifiersPattern})-(?:{arch})\b";
         }
-        // 未知系统/家族直接返回原始模式
-        return $"{osOrFamily}-{arch}";
+        return $@"\b{osOrFamily}-{arch}\b";
     }
 
     private static void GetDownloadUrlFromGitHubRelease(string version, string owner, string repo, out string downloadUrl, out string sha256)
