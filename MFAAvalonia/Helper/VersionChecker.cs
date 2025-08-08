@@ -750,6 +750,25 @@ public static class VersionChecker
             {
                 if (File.Exists(targetUpdaterPath) && File.Exists(sourceUpdaterPath))
                 {
+                    // 在非Windows系统上，先为源更新器设置执行权限
+                    if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                    {
+                        LoggerHelper.Info($"macOS/Linux系统，尝试为源更新器设置执行权限: {sourceUpdaterPath}");
+                        try
+                        {
+                            var chmodSourceProcess = Process.Start("/bin/chmod", $"+x \"{sourceUpdaterPath}\"");
+                            if (chmodSourceProcess != null)
+                            {
+                                await chmodSourceProcess.WaitForExitAsync();
+                                LoggerHelper.Info($"为源更新器设置执行权限: {sourceUpdaterPath}");
+                            }
+                        }
+                        catch (Exception chmodEx)
+                        {
+                            LoggerHelper.Warning($"设置源更新器权限失败: {chmodEx.Message}");
+                        }
+                    }
+
                     var targetVersion = GetVersionFromCommand(targetUpdaterPath);
                     if (string.IsNullOrWhiteSpace(targetVersion))
                     {
