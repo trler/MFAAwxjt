@@ -995,6 +995,8 @@ public static class VersionChecker
                     RedirectStandardError = false
                 };
                 
+                LoggerHelper.Info($"/bin/sh \"cd '{AppContext.BaseDirectory}' && nohup '{updaterPath}' {arguments} > /dev/null 2>&1 &\"");
+
                 using var shellProcess = Process.Start(psi);
                 shellProcess?.WaitForExit();
                 LoggerHelper.Info("更新器已通过macOS shell启动(nohup)");
