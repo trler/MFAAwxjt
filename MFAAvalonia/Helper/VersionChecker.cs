@@ -750,6 +750,25 @@ public static class VersionChecker
             {
                 if (File.Exists(targetUpdaterPath) && File.Exists(sourceUpdaterPath))
                 {
+                    // 在非Windows系统上，先为源更新器设置执行权限
+                    if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                    {
+                        LoggerHelper.Info($"macOS/Linux系统，尝试为源更新器设置执行权限: {sourceUpdaterPath}");
+                        try
+                        {
+                            var chmodSourceProcess = Process.Start("/bin/chmod", $"+x \"{sourceUpdaterPath}\"");
+                            if (chmodSourceProcess != null)
+                            {
+                                await chmodSourceProcess.WaitForExitAsync();
+                                LoggerHelper.Info($"为源更新器设置执行权限: {sourceUpdaterPath}");
+                            }
+                        }
+                        catch (Exception chmodEx)
+                        {
+                            LoggerHelper.Warning($"设置源更新器权限失败: {chmodEx.Message}");
+                        }
+                    }
+
                     var targetVersion = GetVersionFromCommand(targetUpdaterPath);
                     if (string.IsNullOrWhiteSpace(targetVersion))
                     {
@@ -954,24 +973,52 @@ public static class VersionChecker
 
         // 获取当前进程PID，传递给更新器（关键修改）
         var currentProcessId = Process.GetCurrentProcess().Id;
+        
+        // 构建命令参数
+        var arguments = $"{BuildArguments(source, target, oldName, newName)} {EscapeArgument(currentProcessId.ToString())}";
 
-        var psi = new ProcessStartInfo
-        {
-            WorkingDirectory = AppContext.BaseDirectory,
-            FileName = updaterPath, // 使用完整路径
-            Arguments = $"{BuildArguments(source, target, oldName, newName)} {EscapeArgument(currentProcessId.ToString())}",
-            CreateNoWindow = true,
-            WindowStyle = ProcessWindowStyle.Hidden
-        };
-
-        LoggerHelper.Info($"{Path.Combine(AppContext.BaseDirectory, updaterName)} {BuildArguments(source, target, oldName, newName)} {EscapeArgument(currentProcessId.ToString())}");
+        LoggerHelper.Info($"准备启动更新器: {updaterPath} {arguments}");
 
         try
         {
-            using var updaterProcess = Process.Start(psi);
-            if (updaterProcess?.HasExited == false)
+            // 专门针对macOS系统的特殊处理
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
             {
-                LoggerHelper.Info($"更新器已启动(PID:{updaterProcess.Id})");
+                // macOS: 使用nohup启动完全独立的后台进程
+                var psi = new ProcessStartInfo
+                {
+                    FileName = "/bin/sh",
+                    Arguments = $"-c \"cd '{AppContext.BaseDirectory}' && nohup '{updaterPath}' {arguments} > /dev/null 2>&1 &\"",
+                    UseShellExecute = false,
+                    CreateNoWindow = true,
+                    RedirectStandardOutput = false,
+                    RedirectStandardError = false
+                };
+                
+                using var shellProcess = Process.Start(psi);
+                shellProcess?.WaitForExit();
+                LoggerHelper.Info("更新器已通过macOS shell启动(nohup)");
+            }
+            else
+            {
+                // 其他系统：保持原有逻辑
+                
+                var psi = new ProcessStartInfo
+                {
+                    WorkingDirectory = AppContext.BaseDirectory,
+                    FileName = updaterPath, // 使用完整路径
+                    Arguments = $"{BuildArguments(source, target, oldName, newName)} {EscapeArgument(currentProcessId.ToString())}",
+                    CreateNoWindow = true,
+                    WindowStyle = ProcessWindowStyle.Hidden
+                };
+
+                LoggerHelper.Info($"{Path.Combine(AppContext.BaseDirectory, updaterName)} {BuildArguments(source, target, oldName, newName)} {EscapeArgument(currentProcessId.ToString())}");
+
+                using var updaterProcess = Process.Start(psi);
+                if (updaterProcess?.HasExited == false)
+                {
+                    LoggerHelper.Info($"更新器已启动(PID:{updaterProcess.Id})");
+                }
             }
         }
         catch (Exception ex)
@@ -981,6 +1028,8 @@ public static class VersionChecker
         }
         finally
         {
+            // 给更新器一些时间启动
+            await Task.Delay(1000);
             DispatcherHelper.PostOnMainThread(Instances.RootView.BeforeClosed);
             Instances.ShutdownApplication();
         }
@@ -1263,7 +1312,7 @@ public static class VersionChecker
         return digest;
     }
 
-// 标准化操作系统标识
+    // 标准化操作系统标识
     private static (string os, string family) GetNormalizedOSInfo()
     {
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
