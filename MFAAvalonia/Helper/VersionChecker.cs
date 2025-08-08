@@ -996,10 +996,12 @@ public static class VersionChecker
                 };
                 
                 LoggerHelper.Info($"/bin/sh \"cd '{AppContext.BaseDirectory}' && nohup '{updaterPath}' {arguments} > /dev/null 2>&1 &\"");
-
+                
                 using var shellProcess = Process.Start(psi);
-                shellProcess?.WaitForExit();
-                LoggerHelper.Info("更新器已通过macOS shell启动(nohup)");
+                if (shellProcess?.HasExited == false)
+                {
+                    LoggerHelper.Info($"更新器已通过macOS shell启动(nohup)(PID:{shellProcess.Id})");
+                }
             }
             else
             {
