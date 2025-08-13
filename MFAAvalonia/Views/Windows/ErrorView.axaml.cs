@@ -19,7 +19,7 @@ namespace MFAAvalonia.Views.Windows;
 public partial class ErrorView : SukiWindow
 {
     private bool _shouldExit;
-
+    private static bool _existed = false;
     public static readonly StyledProperty<string?> ExceptionMessageProperty =
         AvaloniaProperty.Register<ErrorView, string?>(nameof(ExceptionMessage), string.Empty);
 
@@ -43,7 +43,12 @@ public partial class ErrorView : SukiWindow
     {
         DataContext = this;
         InitializeComponent();
+    }
 
+    protected override void OnClosing(WindowClosingEventArgs e)
+    {
+        _existed = false;
+        base.OnClosing(e);
     }
 
     public ErrorView(Exception? exception, bool shouldExit = false) : this()
@@ -67,12 +72,16 @@ public partial class ErrorView : SukiWindow
     // 显示异常窗口
     public static void ShowException(Exception e, bool shouldExit = false)
     {
+        if (_existed)
+            return;
         DispatcherHelper.RunOnMainThread(() =>
         {
             var errorView = new ErrorView(e, shouldExit);
             errorView.ShowDialog(Instances.RootView);
+            _existed = true;
         });
     }
+    
 #pragma warning disable CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
     // 复制到剪贴板
     private void CopyErrorMessage_Click(object sender, RoutedEventArgs e)
