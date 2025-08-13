@@ -35,7 +35,7 @@ public static class DirectoryMerger
     /// <summary>
     /// 异步合并目录并按文件大小报告进度
     /// </summary>
-    public static async Task DirectoryMergeAsync(
+    public async static Task DirectoryMergeAsync(
         string sourceDirName,
         string destDirName,
         ProgressBar? progressBar = null,
@@ -46,7 +46,10 @@ public static class DirectoryMerger
         // 预扫描计算总文件大小
         var totalSize = CalculateTotalSize(sourceDirName);
         // 用类实例存储已处理大小（替代ref参数）
-        var progressState = new MergeProgressState { ProcessedSize = 0 };
+        var progressState = new MergeProgressState
+        {
+            ProcessedSize = 0
+        };
 
         await MergeDirectoryAsync(
             sourceDirName,
@@ -109,6 +112,8 @@ public static class DirectoryMerger
         if (!Directory.Exists(destDirName))
         {
             Directory.CreateDirectory(destDirName);
+            // 为新创建的目录设置权限
+            await SetDirectoryPermissionsAsync(destDirName, cancellationToken);
         }
 
         // 处理当前目录下的文件
@@ -175,6 +180,9 @@ public static class DirectoryMerger
                     progressState.ProcessedSize += bytesRead; // 更新已处理大小
                     UpdateProgress(progressBar, progressState.ProcessedSize, totalSize);
                 }
+
+                // 复制完成后设置文件权限（非Windows系统）
+                await SetFilePermissionsAsync(tempPath, cancellationToken);
             }
             catch (IOException ex)
             {
@@ -204,6 +212,108 @@ public static class DirectoryMerger
                 overwriteMFA,
                 saveAnnouncement,
                 cancellationToken);
+        }
+    }
+
+    /// <summary>通过chmod为非Windows系统设置文件权限</summary>
+    async private static Task SetFilePermissionsAsync(string filePath, CancellationToken cancellationToken)
+    {
+        if (OperatingSystem.IsWindows())
+            return;
+
+        try
+        {
+            // 确定chmod路径（Linux通常在/bin，macOS可能在/usr/bin）
+            string chmodPath = File.Exists("/bin/chmod") ? "/bin/chmod" : "/usr/bin/chmod";
+
+            // 设置文件权限为755（所有者读写执行，组和其他读执行）
+            var startInfo = new ProcessStartInfo(chmodPath, $"+x \"{filePath}\"")
+            {
+                UseShellExecute = false,
+                RedirectStandardError = true,
+                CreateNoWindow = true
+            };
+
+            using var process = Process.Start(startInfo);
+            if (process == null)
+            {
+                LoggerHelper.Warning($"无法启动chmod进程，文件: {filePath}");
+                return;
+            }
+
+            // 等待进程完成，同时响应取消请求
+            var completionTask = process.WaitForExitAsync(cancellationToken);
+            if (await Task.WhenAny(completionTask, Task.Delay(-1, cancellationToken)) == completionTask)
+            {
+                if (process.ExitCode != 0)
+                {
+                    var error = await process.StandardError.ReadToEndAsync(cancellationToken);
+                    LoggerHelper.Warning($"chmod设置文件权限失败 {filePath} (退出码: {process.ExitCode}): {error}");
+                }
+                else
+                {
+                    LoggerHelper.Info($"已通过chmod设置文件权限: {filePath}");
+                }
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // 取消请求，无需特殊处理
+        }
+        catch (Exception ex)
+        {
+            LoggerHelper.Warning($"设置文件权限时发生错误 {filePath}: {ex.Message}");
+        }
+    }
+
+    /// <summary>通过chmod为非Windows系统设置目录权限</summary>
+    async private static Task SetDirectoryPermissionsAsync(string directoryPath, CancellationToken cancellationToken)
+    {
+        if (OperatingSystem.IsWindows())
+            return;
+
+        try
+        {
+            // 确定chmod路径
+            string chmodPath = File.Exists("/bin/chmod") ? "/bin/chmod" : "/usr/bin/chmod";
+
+            // 设置目录权限为755（所有者读写执行，组和其他读执行）
+            var startInfo = new ProcessStartInfo(chmodPath, $"-R 755 \"{directoryPath}\"")
+            {
+                UseShellExecute = false,
+                RedirectStandardError = true,
+                CreateNoWindow = true
+            };
+
+            using var process = Process.Start(startInfo);
+            if (process == null)
+            {
+                LoggerHelper.Warning($"无法启动chmod进程，目录: {directoryPath}");
+                return;
+            }
+
+            // 等待进程完成，同时响应取消请求
+            var completionTask = process.WaitForExitAsync(cancellationToken);
+            if (await Task.WhenAny(completionTask, Task.Delay(-1, cancellationToken)) == completionTask)
+            {
+                if (process.ExitCode != 0)
+                {
+                    var error = await process.StandardError.ReadToEndAsync(cancellationToken);
+                    LoggerHelper.Warning($"chmod设置目录权限失败 {directoryPath} (退出码: {process.ExitCode}): {error}");
+                }
+                else
+                {
+                    LoggerHelper.Info($"已通过chmod设置目录权限: {directoryPath}");
+                }
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // 取消请求，无需特殊处理
+        }
+        catch (Exception ex)
+        {
+            LoggerHelper.Warning($"设置目录权限时发生错误 {directoryPath}: {ex.Message}");
         }
     }
 
