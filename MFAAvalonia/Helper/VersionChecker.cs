@@ -672,11 +672,16 @@ public static class VersionChecker
 
             // 版本验证
             SetProgress(progress, 50);
+            var mirrocS = false;
             if (IsNewVersionAvailable(latestVersion, GetMaxVersion()))
             {
                 latestVersion = GetMaxVersion();
                 if (isGithub)
                     GetLatestVersionAndDownloadUrlFromGithub(out downloadUrl, out _, out sha256, targetVersion: latestVersion);
+                else
+                {
+                    mirrocS = true;
+                }
             }
 
             if (!IsNewVersionAvailable(latestVersion, GetLocalVersion()))
@@ -686,6 +691,14 @@ public static class VersionChecker
                 Instances.RootViewModel.SetUpdating(false);
                 return;
             }
+            else if (mirrocS)
+            {
+                Dismiss(sukiToast);
+                ToastHelper.Warn("Warning".ToLocalization(), "SwitchUiUpdateSourceToGithub".ToLocalization());
+                Instances.RootViewModel.SetUpdating(false);
+                return;
+            }
+
 
             // 准备临时目录
             var tempPath = Path.Combine(AppContext.BaseDirectory, "temp_mfa");
@@ -878,7 +891,7 @@ public static class VersionChecker
                 UseShellExecute = false,
                 CreateNoWindow = true
             });
-            
+
             if (process != null)
             {
                 process.WaitForExit();
@@ -973,7 +986,7 @@ public static class VersionChecker
 
         // 获取当前进程PID，传递给更新器（关键修改）
         var currentProcessId = Process.GetCurrentProcess().Id;
-        
+
         // 构建命令参数
         var arguments = $"{BuildArguments(source, target, oldName, newName)} {EscapeArgument(currentProcessId.ToString())}";
 
@@ -994,9 +1007,9 @@ public static class VersionChecker
                     RedirectStandardOutput = false,
                     RedirectStandardError = false
                 };
-                
+
                 LoggerHelper.Info($"/bin/sh \"cd '{AppContext.BaseDirectory}' && nohup '{updaterPath}' {arguments} > /dev/null 2>&1 &\"");
-                
+
                 using var shellProcess = Process.Start(psi);
                 if (shellProcess?.HasExited == false)
                 {
@@ -1006,7 +1019,7 @@ public static class VersionChecker
             else
             {
                 // 其他系统：保持原有逻辑
-                
+
                 var psi = new ProcessStartInfo
                 {
                     WorkingDirectory = AppContext.BaseDirectory,
@@ -1354,8 +1367,8 @@ public static class VersionChecker
     {
         return RuntimeInformation.ProcessArchitecture switch
         {
-            Architecture.X64 => "x64",       // 保持x64，不强制转为x86_64
-            Architecture.Arm64 => "arm64",   // 保持arm64，不强制转为aarch64
+            Architecture.X64 => "x64", // 保持x64，不强制转为x86_64
+            Architecture.Arm64 => "arm64", // 保持arm64，不强制转为aarch64
             Architecture.X86 => "x86",
             Architecture.Arm => "arm",
             _ => "unknown"
@@ -1469,7 +1482,10 @@ public static class VersionChecker
     {
         if (aliases.TryGetValue(osOrFamily, out var aliasList))
         {
-            var allIdentifiers = new HashSet<string>(aliasList) { osOrFamily };
+            var allIdentifiers = new HashSet<string>(aliasList)
+            {
+                osOrFamily
+            };
             var identifiersPattern = string.Join("|", allIdentifiers);
             // 关键：用 \b 或 ^ 限定系统标识在开头或 - 之后，避免跨系统匹配
             return $@"\b(?:{identifiersPattern})-(?:{arch})\b";

@@ -742,7 +742,7 @@
         <value>重新扫描控制器</value>
     </data>
     <data name="ResourceDownloadSource" xml:space="preserve">
-        <value>资源下载源</value>
+        <value>下载源</value>
     </data>
     <data name="ResourceLink" xml:space="preserve">
         <value>资源链接: </value>
@@ -1191,5 +1191,8 @@
     </data>
     <data name="UseDirectMLSupportedDevice" xml:space="preserve">
         <value>使用 DirectML 支持设备</value>
+    </data>
+    <data name="SwitchUiUpdateSourceToGithub" xml:space="preserve">
+        <value>因 Mirror 酱无法指定特定版本进行更新，请到更新设置中把更新源切换为 GitHub。</value>
     </data>
 </root>

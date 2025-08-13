@@ -633,7 +633,7 @@
         <value>MiniTouch (Default)</value>
     </data>
     <data name="MirrorAutoUpdatePrompt" xml:space="preserve">
-        <value>Please purchase the Mirror sauce service to enable automatic updates, or switch the download source to GitHub</value>
+        <value>Please purchase the Mirror Chyan service to enable automatic updates, or switch the download source to GitHub</value>
     </data>
     <data name="MirrorChyan" xml:space="preserve">
         <value>Mirror Chyan</value>
@@ -735,7 +735,7 @@
         <value>Rescan Controllers</value>
     </data>
     <data name="ResourceDownloadSource" xml:space="preserve">
-        <value>Resource Download Source</value>
+        <value>Download Source</value>
     </data>
     <data name="ResourceLink" xml:space="preserve">
         <value>Resource Link: </value>
@@ -1183,5 +1183,8 @@
     </data>
     <data name="UseDirectMLSupportedDevice" xml:space="preserve">
         <value>使用 DirectML 支援設備</value>
+    </data>
+    <data name="SwitchUiUpdateSourceToGithub" xml:space="preserve">
+        <value>Since Mirror Chyan cannot specify a specific version for update, please go to update settings and switch the update source to GitHub.</value>
     </data>
 </root>
