@@ -723,11 +723,9 @@ public class MaaProcessor
 
                 if ((args.Message.StartsWith(MaaMsg.Node.Action.Succeeded) || args.Message.StartsWith(MaaMsg.Node.Action.Failed)) && o is MaaTasker tasker)
                 {
-                    Console.WriteLine(jObject);
                     if (jObject["node_id"] != null)
                     {
                         var nodeId = Convert.ToInt64(jObject["node_id"]?.ToString() ?? string.Empty);
-                        Console.WriteLine(nodeId);
                         if (nodeId > 0)
                         {
                             tasker.GetNodeDetail(nodeId, out _, out var recognitionId, out _);
@@ -1010,7 +1008,7 @@ public class MaaProcessor
         }
         catch (Exception e)
         {
-            Console.WriteLine(e);
+            LoggerHelper.Error(e);
             ErrorView.ShowException(e);
             return content;
         }
@@ -1305,7 +1303,6 @@ public class MaaProcessor
         {
             ToastHelper.Error("PipelineLoadError".ToLocalizationFormatted(false, ex.Message)
             );
-            Console.WriteLine(ex);
             LoggerHelper.Error(ex);
             return false;
         }
@@ -2224,7 +2221,7 @@ public class MaaProcessor
         //
         // var tasks = JsonConvert.DeserializeObject<Dictionary<string, MaaNode>>(json, settings);
         // tasks = tasks.MergeMaaNodes(taskModels);
-        Console.WriteLine(taskParams);
+       // Console.WriteLine(taskParams);
         return new NodeAndParam
         {
             Name = task.InterfaceItem?.Name,
@@ -2329,7 +2326,6 @@ public class MaaProcessor
     {
         token.ThrowIfCancellationRequested();
         var instance = await GetTaskerAsync(token);
-        Console.WriteLine("!!!! IsInitialized: " + instance?.IsInitialized);
         return instance is { IsInitialized: true };
     }
 
@@ -2507,7 +2503,6 @@ public class MaaProcessor
         try
         {
             var isUpdateRelated = TaskQueue.Any(task => task.IsUpdateRelated);
-            Console.WriteLine("任务相关:" + isUpdateRelated);
             if (!ShouldProcessStop(finished))
             {
                 ToastHelper.Warn("NoTaskToStop".ToLocalization());
