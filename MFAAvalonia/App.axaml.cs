@@ -228,9 +228,10 @@ public partial class App : Application
                     return true;
             }
         }
-        if (ex is IOException exception && exception.Message.Contains("SSL", StringComparison.OrdinalIgnoreCase))
+        if (ex is IOException exception && exception.Message.Contains("EOF"))
         {
             errorMessage = "SSL验证证书错误";
+            LoggerHelper.Warning(exception);
             return true;
         }
 
