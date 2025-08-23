@@ -527,8 +527,8 @@ public class MaaProcessor
             Instances.PerformanceUserControlModel.ChangeGpuOption(maaResource, Instances.PerformanceUserControlModel.GpuOption);
 
             LoggerHelper.Info(
-                $"GPU acceleration: {(Instances.PerformanceUserControlModel.GpuOption.IsDirectML ? Instances.PerformanceUserControlModel.GpuOption.Adapter.AdapterName : Instances.PerformanceUserControlModel.GpuOption.Device.ToString())}{(Instances.PerformanceUserControlModel.GpuOption.IsDirectML ? $",Adapter Id: {Instances.PerformanceUserControlModel.GpuOption.Adapter.AdapterId}": "")}");
-            
+                $"GPU acceleration: {(Instances.PerformanceUserControlModel.GpuOption.IsDirectML ? Instances.PerformanceUserControlModel.GpuOption.Adapter.AdapterName : Instances.PerformanceUserControlModel.GpuOption.Device.ToString())}{(Instances.PerformanceUserControlModel.GpuOption.IsDirectML ? $",Adapter Id: {Instances.PerformanceUserControlModel.GpuOption.Adapter.AdapterId}" : "")}");
+
         }
         catch (OperationCanceledException)
         {
@@ -2221,7 +2221,7 @@ public class MaaProcessor
         //
         // var tasks = JsonConvert.DeserializeObject<Dictionary<string, MaaNode>>(json, settings);
         // tasks = tasks.MergeMaaNodes(taskModels);
-       // Console.WriteLine(taskParams);
+        // Console.WriteLine(taskParams);
         return new NodeAndParam
         {
             Name = task.InterfaceItem?.Name,
@@ -2689,8 +2689,10 @@ public class MaaProcessor
             }
 
         }
+        Instance.Stop(MFATask.MFATaskStatus.STOPPED);
         action?.Invoke();
     }
+
     public static void CloseSoftwareAndMFA()
     {
         CloseSoftware(Instances.ShutdownApplication);
