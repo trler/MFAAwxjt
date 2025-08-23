@@ -152,6 +152,7 @@ public static class DirectoryMerger
                         || !Path.GetFileName(tempPath).Contains("MFAUpdater")
                         && !Path.GetFileName(tempPath).Contains("MFAAvalonia")
                         && !Path.GetFileName(tempPath).Contains(Process.GetCurrentProcess().MainModule?.ModuleName ?? "MFAAvalonia.exe"))
+                    || Path.GetFileName(tempPath).Contains("interface.json", StringComparison.OrdinalIgnoreCase)
                     || Path.GetExtension(tempPath).Equals(".dll", StringComparison.OrdinalIgnoreCase) && OperatingSystem.IsWindows()
                     || !Path.GetFileName(tempPath).Contains("minicap.so", StringComparison.OrdinalIgnoreCase)
                     && Path.GetExtension(tempPath).Equals(".so", StringComparison.OrdinalIgnoreCase)

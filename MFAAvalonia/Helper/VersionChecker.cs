@@ -429,7 +429,14 @@ public static class VersionChecker
             interfacePath = Path.Combine(tempExtractDir, "assets", "interface.json");
             resourceDirPath = Path.Combine(tempExtractDir, "assets", "resource");
         }
-
+        
+        var file = new FileInfo(interfacePath);
+        if (file.Exists)
+        {
+            var targetPath = Path.Combine(wpfDir, "interface.json");
+            file.CopyTo(targetPath, true);
+        }
+        
         if (isGithub || currentVersion.Equals("v0.0.0", StringComparison.OrdinalIgnoreCase))
         {
             if (Directory.Exists(resourcePath))
@@ -437,14 +444,20 @@ public static class VersionChecker
                 foreach (var rfile in Directory.EnumerateFiles(resourcePath, "*", SearchOption.AllDirectories))
                 {
                     var fileName = Path.GetFileName(rfile);
-                    if (fileName.Equals(ChangelogViewModel.ChangelogFileName, StringComparison.OrdinalIgnoreCase))
+                    if (fileName.Equals(ChangelogViewModel.ChangelogFileName, StringComparison.OrdinalIgnoreCase) || fileName.Contains("interface.json", StringComparison.OrdinalIgnoreCase))
                         continue;
 
                     try
                     {
-                        File.SetAttributes(rfile, FileAttributes.Normal);
-                        LoggerHelper.Info("Deleting file: " + rfile);
-                        File.Delete(rfile);
+                        if (!Path.GetFileName(rfile).Contains("MFAUpdater")
+                            && !Path.GetFileName(rfile).Contains("MFAAvalonia")
+                            && !Path.GetFileName(rfile).Contains("interface.json", StringComparison.OrdinalIgnoreCase)
+                            && !Path.GetFileName(rfile).Contains(Process.GetCurrentProcess().MainModule?.ModuleName ?? string.Empty))
+                        {
+                            File.SetAttributes(rfile, FileAttributes.Normal);
+                            LoggerHelper.Info("Deleting file: " + rfile);
+                            File.Delete(rfile);
+                        }
                     }
                     catch (Exception ex)
                     {
@@ -485,6 +498,7 @@ public static class VersionChecker
                             {
                                 if (!Path.GetFileName(delPath).Contains("MFAUpdater")
                                     && !Path.GetFileName(delPath).Contains("MFAAvalonia")
+                                    && !Path.GetFileName(delPath).Contains("interface.json", StringComparison.OrdinalIgnoreCase)
                                     && !Path.GetFileName(delPath).Contains(Process.GetCurrentProcess().MainModule?.ModuleName ?? string.Empty))
                                 {
                                     if (Path.GetExtension(delPath).Equals(".md", StringComparison.OrdinalIgnoreCase) && delPath.Contains(AnnouncementViewModel.AnnouncementFolder))
@@ -520,6 +534,7 @@ public static class VersionChecker
                             {
                                 if (!Path.GetFileName(delPath).Contains("MFAUpdater")
                                     && !Path.GetFileName(delPath).Contains("MFAAvalonia")
+                                    && !Path.GetFileName(delPath).Contains("interface.json", StringComparison.OrdinalIgnoreCase)
                                     && !Path.GetFileName(delPath).Contains(Process.GetCurrentProcess().MainModule?.ModuleName ?? string.Empty))
                                 {
                                     if (Path.GetExtension(delPath).Equals(".dll", StringComparison.OrdinalIgnoreCase) && OperatingSystem.IsWindows()
@@ -551,12 +566,7 @@ public static class VersionChecker
                 LoggerHelper.Error("No changes.json found");
             }
         }
-        var file = new FileInfo(interfacePath);
-        if (file.Exists)
-        {
-            var targetPath = Path.Combine(wpfDir, "interface.json");
-            file.CopyTo(targetPath, true);
-        }
+
 
         SetProgress(progress, 1);
 
